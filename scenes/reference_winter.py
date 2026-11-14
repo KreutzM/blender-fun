@@ -248,11 +248,11 @@ mountain("Distant alpine peaks",55,far_peaks,MOUNTAIN_FAR,MOUNTAIN_SNOW)
 mountain("Layer of forest mountains",38,middle_peaks,MOUNTAIN,MOUNTAIN_SNOW)
 
 # Moon and pinprick stars behind the mountain skyline.
-sphere("Full winter moon", (-29,58,15.2),1.66,MOON,seg=48,rings=24)
+sphere("Full winter moon", (-23,42,8.7),1.66,MOON,seg=48,rings=24)
 for j in range(145):
     x=rng.uniform(-72,42)
     z=rng.uniform(13,43)
-    if (x+29)**2+(z-15.2)**2 < 14: continue
+    if (x+23)**2+(z-8.7)**2 < 14: continue
     s=rng.uniform(.035,.11)
     sphere("Star %03d"%j,(x,64,z),s,STAR,seg=8,rings=5)
 # Distant atmospheric bright moon halo in three thin rings, restrained.
@@ -261,7 +261,7 @@ for j,(rad,alpha) in enumerate([(2.0,.20),(2.38,.085),(2.83,.035)]):
     points=[]
     for i in range(97):
         a=math.tau*i/96
-        points.append((-29+rad*math.cos(a),58.3,15.2+rad*math.sin(a)))
+        points.append((-23+rad*math.cos(a),42.3,8.7+rad*math.sin(a)))
     tube("Halo outline %d"%j,points,.022,halo,1)
 
 # ---------------------------------------------------------------------------
