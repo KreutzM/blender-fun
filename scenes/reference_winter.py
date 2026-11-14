@@ -255,14 +255,7 @@ for j in range(145):
     if (x+23)**2+(z-8.7)**2 < 14: continue
     s=rng.uniform(.035,.11)
     sphere("Star %03d"%j,(x,64,z),s,STAR,seg=8,rings=5)
-# Distant atmospheric bright moon halo in three thin rings, restrained.
-for j,(rad,alpha) in enumerate([(2.0,.20),(2.38,.085),(2.83,.035)]):
-    halo=material("Moon halo %d"%j,(.60,.75,1.0),emission=alpha)
-    points=[]
-    for i in range(97):
-        a=math.tau*i/96
-        points.append((-23+rad*math.cos(a),42.3,8.7+rad*math.sin(a)))
-    tube("Halo outline %d"%j,points,.022,halo,1)
+# The moon is left unadorned; concentric outline halos looked like targeting rings.
 
 # ---------------------------------------------------------------------------
 # Snow-covered, undulating ground.
