@@ -1,31 +1,27 @@
 # blender-fun
 
-Versuche mit Blender-Python. Der Workflow **Render Blender winter scene** führt die hochgeladene Hermes-Winterszene mit **Blender 4.5.15 LTS** auf einem GitHub-hosted **Ubuntu-24.04-CPU-Runner** aus.
+Experimentier- und Benchmark-Repository für **echte Blender-Python-Szenen** und GitHub Actions als reproduzierbare CPU-Renderfarm (Blender **4.5.15 LTS**, Cycles, OpenImageDenoise).
 
-## Rendern über GitHub Actions
+## Neue Referenz: „Midnight at the Winter Cabin“
 
-1. In [Actions → Render Blender winter scene](../../actions/workflows/blender-render.yml) wechseln.
-2. **Run workflow** auswählen und `preview` (schnell) oder `final` wählen.
-3. Nach erfolgreichem Lauf auf der Run-Seite unter **Artifacts** das ZIP `winter-scene-*` herunterladen. Es enthält `winter_scene.png`, `winter_scene.blend` und `blender.log`.
+Der bewusst anspruchsvollere Referenzentwurf unter [`scenes/reference_winter.py`](scenes/reference_winter.py) verwendet ausschließlich prozedurale Geometrie und Materialien, ohne externe Texturen oder Add-ons. Die Szene kombiniert einen detaillierten Schneemann, tief verschneite Nadelbäume, eine beleuchtete Holzhütte mit Giebeldach, eisige Pfade und Fußabdrücke, Laternen, Zaun, Berge, Sterne, Vollmond und winterliches Gegenlicht. Ein deterministischer Seed gewährleistet Wiederholbarkeit. Das Ergebnis ist als **gestaltete stilisierte 3D-Illustration**, nicht als Fotorealismus, gedacht.
 
-Ein Push auf `main`, der den Workflow oder die Szene verändert, startet automatisch einen **Preview**-Render. Das spart CI-Rechenzeit. Der `final`-Modus ist über **Run workflow** manuell auswählbar.
+[**Referenz-Workflow starten**](../../actions/workflows/reference-winter.yml) – im Dropdown `final` (1920×1080 / 48 Samples) oder `preview` (960×540 / 8 Samples) wählen. Ein Push mit Änderungen an der Referenz startet automatisch den Finalrender. Der Runner erzeugt `reference_winter.png`, `reference_winter.blend` und `reference_render.log` als ZIP-Artefakt (30 Tage).
 
-| Modus | Auflösung | Cycles-Samples | Gerät |
-| --- | --- | --- | --- |
-| `preview` | 960 × 540 | 8 | CPU (2 Threads) |
-| `final` | 1920 × 1080 | 48 | CPU (2 Threads) |
+## Hermes-Ausgangsszene (Baseline)
 
-Eine GitHub-hosted Actions-VM hat **keine CUDA-GPU**. Die Laufzeit wird von der GitHub-Runner-Hardware und eventuellen Warteschlangen beeinflusst. GitHub Actions ist eine temporäre Ausführungsumgebung; Blender wird pro Lauf aus dem offiziellen Archiv heruntergeladen und mit der zugehörigen `.sha256`-Datei überprüft. Die Renderartefakte werden 14 Tage aufbewahrt.
+Die unveränderte gestalterische Hermes-Baseline liegt unter [`scenes/winter_scene.py`](scenes/winter_scene.py). Ihr Workflow ist [**Render Blender winter scene**](../../actions/workflows/blender-render.yml). Der Baseline-Finalrender verwendet 1920×1080 und 48 Samples; Vorschaurender nutzen 960×540 und 8 Samples.
 
-## Lokal rendern
+## Reproduzieren (Blender 4.5.15)
 
 ```bash
 mkdir -p output
-blender --background --factory-startup --threads 2 \
-  --python scenes/winter_scene.py -- "$PWD/output/winter_scene.png"
-python3 scripts/check_render.py output/winter_scene.png output/winter_scene.blend
+BLENDER_RESOLUTION_PERCENT=100 BLENDER_SAMPLES=48 \
+  blender --background --factory-startup --threads 4 \
+  --python scenes/reference_winter.py -- "$PWD/output/reference_winter.png"
+python3 scripts/check_render.py output/reference_winter.png output/reference_winter.blend
 ```
 
-Das Skript basiert auf der von Hermes erstellten Winterszene. Für den Vergleich mit dem ursprünglichen Render bleiben die Standardeinstellungen bei **1920×1080 / 48 Samples**. Die Anpassungen beschränken sich auf zuverlässige Ausgabepfade, optionale Preview-Parameter und das Speichern einer editierbaren `.blend`-Datei.
+Der Vergleich sollte neben dem Bild insbesondere Geometrie, Licht, Materialien, Tiefenwirkung, Komposition, Zuverlässigkeit sowie **kumulierte Agenten-Inferenzzeit vs. reine Blender-Renderzeit** bewerten. Ein aufwendigerer Referenzentwurf darf erheblich länger rendern als die einfache Hermes-Szene; daraus allein lässt sich keine höhere Agentenqualität ableiten.
 
-Mit `BLENDER_SAMPLES=8 BLENDER_RESOLUTION_PERCENT=50` wird ein kleiner Vorschaurender erstellt. Benutze den Konfigurationsworkflow nur für vertrauenswürdige Blender-Python-Skripte: Sie können wie andere Programme auf dem Runner Dateien lesen und Befehle ausführen. Deshalb führt dieser Workflow keine fremden Pull Requests automatisch aus.
+GitHub-hosted Actions-Runner besitzen standardmäßig **keine CUDA-GPU**; die Referenz verwendet CPU-Cycles. Der Workflow lädt das offizielle Blender-Archiv von den Blender-Mirrors herunter und kontrolliert die zugehörige SHA256-Datei. Blender-Python ist ausführbarer Programmcode; deshalb erfolgen keine automatischen Renderläufe für fremde Pull Requests.

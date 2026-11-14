@@ -1,0 +1,79 @@
+name: Render reference winter scene
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/reference-winter.yml'
+      - 'scenes/reference_winter.py'
+      - 'scripts/check_render.py'
+  workflow_dispatch:
+    inputs:
+      quality:
+        description: 'Preview 960x540 / 8 samples, or final 1920x1080 / 48 samples'
+        type: choice
+        options: [preview, final]
+        required: true
+        default: final
+
+permissions:
+  contents: read
+
+jobs:
+  reference-render:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      BLENDER_VERSION: '4.5.15'
+      BLENDER_RESOLUTION_PERCENT: ${{ github.event_name == 'workflow_dispatch' && inputs.quality == 'preview' && '50' || '100' }}
+      BLENDER_SAMPLES: ${{ github.event_name == 'workflow_dispatch' && inputs.quality == 'preview' && '8' || '48' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Blender Linux dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libgl1 libxi6 libxrender1 libxrandr2 libxinerama1 libxcursor1 libxkbcommon-x11-0
+      - name: Download Blender 4.5.15 and verify checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          archive="blender-${BLENDER_VERSION}-linux-x64.tar.xz"
+          getfile() {
+            local file="$1" mirror
+            for mirror in \
+              "https://mirror.clarkson.edu/blender/release/Blender4.5" \
+              "https://mirror.blender.org/release/Blender4.5" \
+              "https://download.blender.org/release/Blender4.5"; do
+              echo "Trying $mirror/$file"
+              if curl -fLSs --retry 2 --retry-delay 3 --max-time 600 "$mirror/$file" -o "$file"; then return 0; fi
+              rm -f "$file"
+            done
+            return 1
+          }
+          getfile "$archive"
+          getfile "blender-${BLENDER_VERSION}.sha256"
+          grep -F " $archive" "blender-${BLENDER_VERSION}.sha256" | head -n 1 | sha256sum -c -
+          tar -xJf "$archive"
+          "$RUNNER_TEMP/blender-${BLENDER_VERSION}-linux-x64/blender" --version
+      - name: Build and render the reference
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p output
+          blender="$RUNNER_TEMP/blender-${BLENDER_VERSION}-linux-x64/blender"
+          "$blender" --background --factory-startup --threads 4 \
+            --python scenes/reference_winter.py -- "$GITHUB_WORKSPACE/output/reference_winter.png" \
+            > output/reference_render.log 2>&1 || { tail -n 120 output/reference_render.log; exit 1; }
+          tail -n 40 output/reference_render.log
+      - name: Verify output files
+        run: python3 scripts/check_render.py output/reference_winter.png output/reference_winter.blend
+      - name: Publish PNG, editable project and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reference-winter-${{ github.run_number }}-${{ github.run_attempt }}
+          path: output/
+          retention-days: 30
+          if-no-files-found: warn
