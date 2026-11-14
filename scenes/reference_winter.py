@@ -184,11 +184,11 @@ def point(name,loc,power,color,radius=2):
 # ---------------------------------------------------------------------------
 # Painterly midnight backdrop + mountain silhouettes, entirely geometry.
 # ---------------------------------------------------------------------------
-scene.world.color=(.10,.14,.21)
-world_nodes=scene.world.node_tree
-if not scene.world.use_nodes:
-    scene.world.use_nodes=True
-wbg=scene.world.node_tree.nodes.get("Background")
+# Factory settings with use_empty=True omit the default world in Blender 4.5.
+scene.world = bpy.data.worlds.new("Midnight atmosphere")
+scene.world.use_nodes = True
+scene.world.color = (.10,.14,.21)
+wbg = scene.world.node_tree.nodes.get("Background")
 wbg.inputs["Color"].default_value=(.12,.16,.27,1)
 wbg.inputs["Strength"].default_value=.30
 
