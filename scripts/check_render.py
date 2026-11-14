@@ -13,7 +13,7 @@ if not png.is_file() or png.stat().st_size < 10_000:
     raise SystemExit(f"PNG missing or unexpectedly small: {png}")
 with png.open("rb") as file:
     header = file.read(24)
-if header[:8] != b"\\x89PNG\\r\\n\\x1a\\n" or header[12:16] != b"IHDR":
+if header[:8] != b"\x89PNG\r\n\x1a\n" or header[12:16] != b"IHDR":
     raise SystemExit("Invalid PNG signature/header")
 width, height = struct.unpack(">II", header[16:24])
 pct = int(os.getenv("BLENDER_RESOLUTION_PERCENT", "100"))
