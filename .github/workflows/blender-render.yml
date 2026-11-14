@@ -1,0 +1,77 @@
+name: Render Blender winter scene
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/blender-render.yml'
+      - 'scenes/**'
+      - 'scripts/check_render.py'
+  workflow_dispatch:
+    inputs:
+      quality:
+        description: 'Render quality (preview is fast; final matches Hermes settings)'
+        required: true
+        type: choice
+        options: [preview, final]
+        default: preview
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      BLENDER_VERSION: '4.5.15'
+      BLENDER_SAMPLES: ${{ github.event_name == 'workflow_dispatch' && inputs.quality == 'final' && '48' || '8' }}
+      BLENDER_RESOLUTION_PERCENT: ${{ github.event_name == 'workflow_dispatch' && inputs.quality == 'final' && '100' || '50' }}
+    steps:
+      - name: Checkout scene and checks
+        uses: actions/checkout@v4
+
+      - name: Install Linux runtime libraries
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            libgl1 libxi6 libxrender1 libxrandr2 libxinerama1 libxcursor1 libxkbcommon-x11-0
+
+      - name: Download and verify Blender release
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          base="https://download.blender.org/release/Blender4.5"
+          archive="blender-${BLENDER_VERSION}-linux-x64.tar.xz"
+          curl --fail --location --retry 3 --retry-delay 5 --max-time 600 \
+            "$base/$archive" --output "$archive"
+          curl --fail --location --retry 3 --retry-delay 5 --max-time 90 \
+            "$base/blender-${BLENDER_VERSION}.sha256" --output "blender-${BLENDER_VERSION}.sha256"
+          grep -F " $archive" "blender-${BLENDER_VERSION}.sha256" | head -n 1 | sha256sum --check -
+          tar -xJf "$archive"
+          "$RUNNER_TEMP/blender-${BLENDER_VERSION}-linux-x64/blender" --version
+
+      - name: Render scene with CPU Cycles
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p output
+          blender="$RUNNER_TEMP/blender-${BLENDER_VERSION}-linux-x64/blender"
+          echo "Samples: $BLENDER_SAMPLES; Resolution: $BLENDER_RESOLUTION_PERCENT%"
+          "$blender" --background --factory-startup --threads 2 \
+            --python scenes/winter_scene.py -- "$GITHUB_WORKSPACE/output/winter_scene.png" \
+            > output/blender.log 2>&1 || { tail -n 150 output/blender.log; exit 1; }
+          tail -n 40 output/blender.log
+
+      - name: Verify PNG and editable BLEND
+        run: python3 scripts/check_render.py output/winter_scene.png output/winter_scene.blend
+
+      - name: Upload render, BLEND project and log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: winter-scene-${{ github.run_number }}-${{ github.run_attempt }}
+          path: output/
+          if-no-files-found: warn
+          retention-days: 14
