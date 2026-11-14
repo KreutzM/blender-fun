@@ -79,8 +79,8 @@ SCARF = material("Woven cranberry red", (.63,.037,.062), .98, grain=92)
 SCARF_LIGHT = material("Scarf trim ivory", (.94,.77,.59), .88)
 CARROT = material("Carrot orange", (.94,.255,.028), .64, grain=50)
 BRASS = material("Brass", (.64,.34,.10), .30, metallic=.68)
-WINDOW = material("Warm windows | golden", (1.0,.47,.13), .3, emission=3.5)
-WINDOW_BRIGHT = material("Warm windows | inner", (1.0,.75,.34), .35, emission=3.8)
+WINDOW = material("Warm windows | golden", (1.0,.38,.09), .4, emission=1.65)
+WINDOW_BRIGHT = material("Warm windows | inner", (1.0,.58,.25), .42, emission=1.85)
 LAMP = material("Lantern glass", (1.0,.70,.28), .3, emission=4.0)
 MOON = material("Moon | ivory luminous", (.80,.88,1.0), .95, emission=3.0)
 STAR = material("Starlight", (.83,.91,1.0), .99, emission=2.5)
@@ -190,7 +190,7 @@ scene.world.use_nodes = True
 scene.world.color = (.10,.14,.21)
 wbg = scene.world.node_tree.nodes.get("Background")
 wbg.inputs["Color"].default_value=(.12,.16,.27,1)
-wbg.inputs["Strength"].default_value=.30
+wbg.inputs["Strength"].default_value=.18
 
 sky = material("Sky placeholder", (.08,.12,.23))
 sky.use_nodes=True
@@ -207,13 +207,13 @@ sep.location=(-400,150)
 ramp=n.new("ShaderNodeValToRGB")
 ramp.location=(-100,150)
 ramp.color_ramp.elements[0].position=.0
-ramp.color_ramp.elements[0].color=(.35,.32,.43,1)
+ramp.color_ramp.elements[0].color=(.20,.24,.37,1)
 ramp.color_ramp.elements[1].position=1.
-ramp.color_ramp.elements[1].color=(.009,.025,.082,1)
+ramp.color_ramp.elements[1].color=(.005,.017,.059,1)
 e=ramp.color_ramp.elements.new(.15)
-e.color=(.16,.24,.38,1)
+e.color=(.09,.16,.30,1)
 e=ramp.color_ramp.elements.new(.38)
-e.color=(.045,.096,.215,1)
+e.color=(.025,.065,.163,1)
 mapnode=n.new("ShaderNodeMapRange")
 mapnode.inputs["From Min"].default_value=0
 mapnode.inputs["From Max"].default_value=60
@@ -242,26 +242,26 @@ def mountain(name, y, peaks, mat, cap_mat, base_z=-2.0):
               (x+span*.85,y-.05,z-2.0),(x,y-.11,z-1.15)],
              [(0,1,3),(3,1,2)],cap_mat)
 
-far_peaks=[(-100,4),(-45,7),(-32,11),(-22,6),(-12,13),(-4,8),(7,13),(23,6),(40,12),(62,6),(100,6)]
-middle_peaks=[(-100,2),(-37,5),(-26,9),(-19,6),(-12,10),(-5,4),(4,7),(12,10),(25,4),(42,8),(100,3)]
+far_peaks=[(-100,3),(-45,5),(-32,7.8),(-22,4.6),(-12,8.5),(-4,5.3),(7,8.2),(23,4.5),(40,7.7),(62,4.3),(100,4)]
+middle_peaks=[(-100,1.5),(-37,3.8),(-26,6.3),(-19,4.1),(-12,7),(-5,3.4),(4,5.2),(12,6.9),(25,3.5),(42,5.9),(100,2.2)]
 mountain("Distant alpine peaks",55,far_peaks,MOUNTAIN_FAR,MOUNTAIN_SNOW)
 mountain("Layer of forest mountains",38,middle_peaks,MOUNTAIN,MOUNTAIN_SNOW)
 
 # Moon and pinprick stars behind the mountain skyline.
-sphere("Full winter moon", (-26,58,25),2.05,MOON,seg=48,rings=24)
+sphere("Full winter moon", (-29,58,15.2),1.66,MOON,seg=48,rings=24)
 for j in range(145):
     x=rng.uniform(-72,42)
     z=rng.uniform(13,43)
-    if (x+26)**2+(z-25)**2 < 15: continue
+    if (x+29)**2+(z-15.2)**2 < 14: continue
     s=rng.uniform(.035,.11)
     sphere("Star %03d"%j,(x,64,z),s,STAR,seg=8,rings=5)
 # Distant atmospheric bright moon halo in three thin rings, restrained.
-for j,(rad,alpha) in enumerate([(2.45,.25),(2.9,.11),(3.4,.045)]):
+for j,(rad,alpha) in enumerate([(2.0,.20),(2.38,.085),(2.83,.035)]):
     halo=material("Moon halo %d"%j,(.60,.75,1.0),emission=alpha)
     points=[]
     for i in range(97):
         a=math.tau*i/96
-        points.append((-26+rad*math.cos(a),58.3,25+rad*math.sin(a)))
+        points.append((-29+rad*math.cos(a),58.3,15.2+rad*math.sin(a)))
     tube("Halo outline %d"%j,points,.022,halo,1)
 
 # ---------------------------------------------------------------------------
@@ -315,9 +315,9 @@ def pine(name, x,y,h,variant=0):
         for k in range(sides):
             if k%5 in (1,3) and h>3: continue
             j=(k+1)%sides
-            ff.append((k,j,sides+j,sides+k))
+            ff.append((sides+k,sides+j,j,k))
         mesh(name+" | snow powdered tiers %d"%level,snowverts,ff,SNOW_BLUE if y>12 else SNOW)
-    sphere(name+" | icy tip",(x,y,h*.99),h*.11,SNOW,seg=12,rings=8)
+    sphere(name+" | small snowy top",(x,y,h*.97),h*.026,SNOW,seg=12,rings=8)
 
 # Far forest is layered and subdued.
 for i in range(31):
@@ -388,11 +388,12 @@ for k in range(15):
 chimney_x=CX+1.63
 cube("Stone chimney",(chimney_x,CY+.75,4.54),(.68,.78,2.8),WOOD_DARK,bevel=.09)
 cube("Chimney snowy rim",(chimney_x,CY+.75,5.97),(.92,.94,.15),SNOW,bevel=.035)
-for i in range(5):
-    v=i*.43
-    sphere("Soft rising chimney smoke %d"%i,
-        (chimney_x-.13*i,CY+.82+i*.1,6.2+v),.17+.07*i,
-        SNOW_BLUE,seg=12,rings=8)
+# Faint curling smoke, thin enough not to resemble giant cotton snowballs.
+tube("Fine chimney smoke wisp", [
+    (chimney_x,CY+.82,6.1),
+    (chimney_x-.14,CY+.85,6.5),
+    (chimney_x+.05,CY+.95,6.95),
+    (chimney_x-.28,CY+1.03,7.4)],.035,MOUNTAIN_FAR,2)
 
 def framed_window(x,z,width=.96,height=1.13):
     y=front-.23
@@ -573,15 +574,15 @@ for i in range(115):
 # Cinematic lighting: moonlit blue key + warm windows and snow bounce.
 # ---------------------------------------------------------------------------
 moon_lamp=bpy.data.lights.new("Cool blue winter moonlight",'SUN')
-moon_lamp.energy=1.9
+moon_lamp.energy=1.0
 moon_lamp.angle=math.radians(5)
 moon_lamp.color=(.49,.68,1.0)
 moon_obj=bpy.data.objects.new("Cool blue winter moonlight",moon_lamp)
 scene.collection.objects.link(moon_obj)
 moon_obj.rotation_euler=Vector((.42,.35,-1.0)).to_track_quat('-Z','Y').to_euler()
-area("Soft cold rim on snowman",(-10,6,12),630,(.57,.73,1.0),11,(0,0,1))
-area("Quiet amber bounce from cottage",(6,2.0,7.0),450,(1.0,.65,.36),8,(-1,-3,1))
-area("Blue foreground fill",(2,-11,9),220,(.65,.78,1.0),10,(0,0,0))
+area("Soft cold rim on snowman",(-10,6,12),350,(.57,.73,1.0),11,(0,0,1))
+area("Quiet amber bounce from cottage",(6,2.0,7.0),330,(1.0,.65,.36),8,(-1,-3,1))
+area("Blue foreground fill",(2,-11,9),100,(.65,.78,1.0),10,(0,0,0))
 
 # Camera: deliberate storybook thirds, snowman in left foreground,
 # warm cabin on right, path leading the eye and alpine mountains beyond.
