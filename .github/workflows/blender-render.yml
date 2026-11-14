@@ -42,12 +42,25 @@ jobs:
         run: |
           set -euo pipefail
           cd "$RUNNER_TEMP"
-          base="https://download.blender.org/release/Blender4.5"
           archive="blender-${BLENDER_VERSION}-linux-x64.tar.xz"
-          curl --fail --location --retry 3 --retry-delay 5 --max-time 600 \
-            "$base/$archive" --output "$archive"
-          curl --fail --location --retry 3 --retry-delay 5 --max-time 90 \
-            "$base/blender-${BLENDER_VERSION}.sha256" --output "blender-${BLENDER_VERSION}.sha256"
+          download_release_file() {
+            local file="$1" mirror
+            for mirror in \
+              "https://mirror.clarkson.edu/blender/release/Blender4.5" \
+              "https://mirror.blender.org/release/Blender4.5" \
+              "https://download.blender.org/release/Blender4.5"; do
+              echo "Trying $file from $mirror"
+              if curl --fail --location --retry 2 --retry-delay 3 --max-time 600 \
+                  "$mirror/$file" --output "$file"; then
+                return 0
+              fi
+              rm -f "$file"
+            done
+            echo "::error::Failed to download $file from all three mirrors"
+            return 1
+          }
+          download_release_file "$archive"
+          download_release_file "blender-${BLENDER_VERSION}.sha256"
           grep -F " $archive" "blender-${BLENDER_VERSION}.sha256" | head -n 1 | sha256sum --check -
           tar -xJf "$archive"
           "$RUNNER_TEMP/blender-${BLENDER_VERSION}-linux-x64/blender" --version
