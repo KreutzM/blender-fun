@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/blender-render.yml'
-      - 'scenes/**'
+      - 'scenes/winter_scene.py'
       - 'scripts/check_render.py'
   workflow_dispatch:
     inputs:
