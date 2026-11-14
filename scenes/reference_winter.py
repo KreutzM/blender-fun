@@ -307,9 +307,9 @@ def pine(name, x,y,h,variant=0):
         for k in range(sides):
             a=math.tau*k/sides
             inner.append((center_x+rr[k]*.34*math.cos(a),
-                          y+rr[k]*.34*math.sin(a),z+h*.11))
+                          y+rr[k]*.34*math.sin(a),z+h*.13))
             outer.append((center_x+rr[k]*.80*math.cos(a),
-                          y+rr[k]*.80*math.sin(a),z+.023))
+                          y+rr[k]*.80*math.sin(a),z+h*.052))
         snowverts=inner+outer
         ff=[]
         for k in range(sides):
@@ -317,7 +317,7 @@ def pine(name, x,y,h,variant=0):
             j=(k+1)%sides
             ff.append((sides+k,sides+j,j,k))
         mesh(name+" | snow powdered tiers %d"%level,snowverts,ff,SNOW_BLUE if y>12 else SNOW)
-    sphere(name+" | small snowy top",(x,y,h*.97),h*.026,SNOW,seg=12,rings=8)
+    # The pointed top remains an angular snow-dusted spruce sprig, not a white bauble.
 
 # Far forest is layered and subdued.
 for i in range(31):
@@ -358,7 +358,10 @@ ridge=CX
 front_roof=front-.52
 back_roof=CY+2.7
 def roof_quad(name,p1,p2,p3,p4,mat):
-    mesh(name,[p1,p2,p3,p4],[(0,1,2,3)],mat)
+    # Both roof slopes must point UP: the original left slope had reversed normals.
+    normal = (Vector(p2)-Vector(p1)).cross(Vector(p3)-Vector(p1))
+    face = (0,1,2,3) if normal.z >= 0 else (3,2,1,0)
+    mesh(name,[p1,p2,p3,p4],[face],mat)
 for side in (-1,1):
     ex=CX+side*3.37
     rx=CX
@@ -388,12 +391,7 @@ for k in range(15):
 chimney_x=CX+1.63
 cube("Stone chimney",(chimney_x,CY+.75,4.54),(.68,.78,2.8),WOOD_DARK,bevel=.09)
 cube("Chimney snowy rim",(chimney_x,CY+.75,5.97),(.92,.94,.15),SNOW,bevel=.035)
-# Faint curling smoke, thin enough not to resemble giant cotton snowballs.
-tube("Fine chimney smoke wisp", [
-    (chimney_x,CY+.82,6.1),
-    (chimney_x-.14,CY+.85,6.5),
-    (chimney_x+.05,CY+.95,6.95),
-    (chimney_x-.28,CY+1.03,7.4)],.035,MOUNTAIN_FAR,2)
+# Clear crisp air: no cartoon smoke spheres or dark pipe-like smoke lines.
 
 def framed_window(x,z,width=.96,height=1.13):
     y=front-.23
