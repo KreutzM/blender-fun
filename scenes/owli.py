@@ -287,11 +287,11 @@ eye_r=.35*eye_scale
 for sign in (-1,1):
     x=sign*.51; z=3.45
     uv("Eye %s | dark glossy socket"%sign,(x,-.785,z),
-       (eye_r*1.22,.115,eye_r*1.22),M["eye_dark"],"07 | Eyes")
+       (eye_r*1.15,.11,eye_r*1.15),M["eye_dark"],"07 | Eyes")
     uv("Eye %s | luminous blue iris"%sign,(x,-.890,z),
        (eye_r*1.04,.069,eye_r*1.04),M["iris"],"07 | Eyes")
     uv("Eye %s | inner turquoise corona"%sign,(x,-.958,z),
-       (eye_r*.78,.027,eye_r*.78),M["iris_cyan"],"07 | Eyes")
+       (eye_r*.72,.027,eye_r*.72),M["iris_cyan"],"07 | Eyes")
     uv("Eye %s | pupil"%sign,(x,-.987,z+.016),
        (eye_r*.60,.029,eye_r*.60),M["eye_dark"],"07 | Eyes")
     uv("Eye %s | main glint"%sign,(x-sign*.095,-1.035,z+.132),
@@ -329,8 +329,8 @@ for side in (-1,1):
     for row in range(3):
         for k in range(9):
             t=k/8
-            root=Vector((side*(.13+.53*t),-.74+.09*t,2.69-row*.105))
-            tip=root+Vector((side*.11,-.015,-(.23+.06*t)))
+            root=Vector((side*(.12+.52*t),-.74+.12*t,2.45+.29*t-row*.085))
+            tip=root+Vector((side*(.04+.07*t),-.025,-(.24+.08*t)))
             accent.add(root,tip,.18,Vector((0,-1,0)),
                        M["orange"] if (row==0 or (k+row)%3==0) else M["gold"],arch=.018)
 accent.commit()
@@ -362,6 +362,10 @@ for side in (-1,1):
             v=k/9
             y=-.20+v*.76
             x=side*(1.05+.034*math.sin(v*math.pi)+wingspan*.3)
+            # A sculpted taper gives each folded wing an owl-like teardrop
+            # silhouette instead of the straight vertical flank of a cylinder.
+            shape=max(0.12,min(1.0,(z-1.0)/1.55))
+            x=side*(.68+.37*shape+.034*math.sin(v*math.pi)+wingspan*.3)
             root=Vector((x,y,z+.04*(k%2)))
             tip=root+Vector((side*(.055+wingspan*.12),-.005,-(.36+.065*v)))
             wingfeathers.add(root,tip,.19,Vector((side,.16*(v-.5),0)),
@@ -395,8 +399,9 @@ cone_between("Natural wood perch",(-2.15,-.89,branch_z),
 for i in (-1,1):
     uv("Scaly orange foot palm %s"%i,(i*.47,-.73,.87),
        (.26,.21,.14),M["orange"],"12 | Feet",22,14)
-    for toe in range(4):
-        xx=i*.47+(toe-1.5)*.12
+    for toe in range(3):
+        # Three separated front toes and one opposing rear toe = 4 in total.
+        xx=i*.47+(toe-1)*.18
         points=[
             (xx,-.73,.93),
             (xx,-.99,.95),
