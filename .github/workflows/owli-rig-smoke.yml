@@ -1,4 +1,5 @@
 name: Owli | fast rig validation
+# Regression verification for expressive wings and closed-eye shape keys.
 
 on:
   push:
