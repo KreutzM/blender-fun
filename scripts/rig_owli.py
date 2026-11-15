@@ -146,7 +146,7 @@ for frame in (1,LAST):
 # Gaze, gentle head tilt, feathered wing greeting and a toe grip.
 for time,value in ((1.1,-.19),(2.3,.17),(3.6,-.12),(5.1,0)):
     keyrot("head",round(time*FPS),1,value)
-for time,value in ((2.4,0),(3.1,.42),(3.75,-.10),(4.35,.30),(5.2,0)):
+for time,value in ((2.4,0),(3.1,.92),(3.75,-.22),(4.35,.70),(5.2,0)):
     f=round(time*FPS)
     keyrot("wing.L",f,1,value);keyrot("wing.R",f,1,-value)
 for time,value in ((.75,-.10),(1.65,.14),(2.7,0)):
@@ -164,6 +164,22 @@ for time,value in ((2.8,0),(3.3,.20),(4.3,0)):
 for time,value in ((1,0),(2.6,.14),(4.8,-.10),(LAST/FPS,0)):
     keyrot("tail",round(time*FPS),0,value)
 
+# Verify the animated properties actually change the evaluated 3D pose.
+scene.frame_set(1)
+bpy.context.view_layer.update()
+wing_rest=arm.pose.bones["wing.L"].matrix.copy()
+scene.frame_set(round(3.1*FPS))
+bpy.context.view_layer.update()
+wing_raised=arm.pose.bones["wing.L"].matrix.copy()
+assert (wing_rest.translation-wing_raised.translation).length < .001
+assert max(abs(wing_raised[i][j]-wing_rest[i][j]) for i in range(3) for j in range(3))>.15, "Wing bone not animated"
+scene.frame_set(round(2.48*FPS))
+bpy.context.view_layer.update()
+eyelid=bpy.data.objects.get("Eyelid.R | 0=open 1=closed")
+assert eyelid and eyelid.data.shape_keys
+blink_eval=eyelid.data.shape_keys.key_blocks["Closed"].value
+assert blink_eval>.6, "Blink driver did not close the eyelid"
+print("OWLI_RIG_MOTION_VERIFIED", "wing_rotation_changed",True,"blink_closed",blink_eval,flush=True)
 scene.frame_set(1)
 bpy.context.view_layer.update()
 project=OUT/"owli_rigged.blend"
@@ -179,8 +195,8 @@ report={"bone_count":len(arm.pose.bones),"bones":sorted(arm.pose.bones.keys()),
 (OUT/"rig_report.json").write_text(json.dumps(report,indent=2))
 print("OWLI_RIG_READY",report,flush=True)
 for name,second in (("pose_idle.png",0),("pose_glance.png",1.65),
-                    ("pose_wink.png",2.5),("pose_wings.png",3.15)):
-    scene.frame_set(max(1,min(LAST,round(second*FPS)+1)))
+                    ("pose_wink.png",2.48),("pose_wings.png",3.1)):
+    scene.frame_set(max(1,min(LAST,round(second*FPS))))
     scene.render.filepath=str(OUT/name)
     bpy.ops.render.render(write_still=True)
     print("OWLI_RIG_STILL",name,flush=True)
