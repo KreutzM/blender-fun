@@ -1,4 +1,5 @@
 name: Owli | fast geometry smoke test
+# Parametric Owli V3: eye contour, chibi wing silhouette and corrected toe anatomy.
 # Side-by-side geometry review after the reference-color and wing-plumage refinement.
 
 on:
