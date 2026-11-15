@@ -29,6 +29,9 @@ jobs:
       - name: Build parametric Owli with distribution Blender
         run: |
           mkdir -p output/owli
+          # Ubuntu's Blender 4.0.2 build has no OpenImageDenoiser.
+          # Disable it only for this smoke test, not for the pinned 4.5 production CI.
+          sed -i 's/scene.cycles.use_denoising = True/scene.cycles.use_denoising = False/' scenes/owli.py
           blender --background --factory-startup --threads 4 \
             --python scenes/owli.py -- "$GITHUB_WORKSPACE/output/owli" \
             > output/owli/owli-build.log 2>&1 || { tail -n 130 output/owli/owli-build.log; exit 1; }
