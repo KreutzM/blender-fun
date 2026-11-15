@@ -1,5 +1,5 @@
 name: Owli | fast rig validation
-# Verify evaluated bone parenting and eyelid world-space placement.
+# Validate true eye-level eyelids after the pre-parent depsgraph fix.
 
 on:
   push:
