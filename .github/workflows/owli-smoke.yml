@@ -1,0 +1,51 @@
+name: Owli | fast geometry smoke test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/owli-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    env:
+      OWLI_SAMPLES: '6'
+      OWLI_RESOLUTION: '55'
+      OWLI_VIEWS: '0,45,90,180,270'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install packaged Blender and rendering requirements
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends blender ffmpeg
+          blender --version | head -n 2
+      - name: Build parametric Owli with distribution Blender
+        run: |
+          mkdir -p output/owli
+          blender --background --factory-startup --threads 4 \
+            --python scenes/owli.py -- "$GITHUB_WORKSPACE/output/owli" \
+            > output/owli/owli-build.log 2>&1 || { tail -n 130 output/owli/owli-build.log; exit 1; }
+          tail -n 40 output/owli/owli-build.log
+      - name: Validate 5 real views and .blend
+        run: python3 scripts/check_owli.py output/owli
+      - name: Make a geometry overview
+        run: |
+          ffmpeg -hide_banner -loglevel error -y \
+            -pattern_type glob -i 'output/owli/owli_*.png' \
+            -vf 'scale=320:320:flags=lanczos,tile=5x1' \
+            -frames:v 1 output/owli/owli_smoke_overview.png
+      - name: Upload Owli smoke renders
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owli-smoke-${{ github.run_number }}
+          path: output/owli/
+          if-no-files-found: warn
+          retention-days: 14
