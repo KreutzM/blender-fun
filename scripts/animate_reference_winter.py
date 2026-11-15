@@ -47,19 +47,19 @@ def hermite(t, stops, property_index):
     dt = right[0] - left[0]
     u = max(0.0, min(1.0, (t - left[0]) / dt))
     u2, u3 = u * u, u * u * u
-    p = Vector(left[property_index]) if property_index != 3 else Vector((left[3],))
-    q = Vector(right[property_index]) if property_index != 3 else Vector((right[3],))
+    p = Vector(left[property_index]) if property_index != 3 else Vector((left[3],0,0))
+    q = Vector(right[property_index]) if property_index != 3 else Vector((right[3],0,0))
     if segment == 0:
         v0 = Vector((0,) * len(p))
     else:
         prev = stops[segment - 1]
-        pre = Vector(prev[property_index]) if property_index != 3 else Vector((prev[3],))
+        pre = Vector(prev[property_index]) if property_index != 3 else Vector((prev[3],0,0))
         v0 = (q - pre) / (right[0] - prev[0])
     if segment + 2 == len(stops):
         v1 = Vector((0,) * len(p))
     else:
         nxt = stops[segment + 2]
-        np = Vector(nxt[property_index]) if property_index != 3 else Vector((nxt[3],))
+        np = Vector(nxt[property_index]) if property_index != 3 else Vector((nxt[3],0,0))
         v1 = (np - p) / (nxt[0] - left[0])
     return (2*u3-3*u2+1)*p + (u3-2*u2+u)*dt*v0 + (-2*u3+3*u2)*q + (u3-u2)*dt*v1
 
