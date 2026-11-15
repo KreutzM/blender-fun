@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "Owli / Classic Owli / Variante A",
+  "version": "1.0.0",
+  "seed": 20261115,
+  "proportions": {
+    "head_scale": 1,
+    "body_width": 1,
+    "eye_scale": 1,
+    "wing_spread": 0
+  },
+  "model_detail": {
+    "feather_density": 1
+  },
+  "palette": {
+    "navy": "#0B234C",
+    "cobalt": "#0E6FC5",
+    "sapphire": "#196EEE",
+    "turquoise": "#12D7EB",
+    "cyan": "#08C8F2",
+    "white": "#F9F9FB",
+    "cream": "#FFEFE6",
+    "orange": "#FF9A1F",
+    "gold": "#FFD166",
+    "eye_dark": "#031430",
+    "wood": "#75482C",
+    "wood_light": "#A16E42",
+    "background": "#CFD8E5"
+  }
+}

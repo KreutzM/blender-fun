@@ -1,0 +1,92 @@
+name: Owli | parametric 3D model and 360 views
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/owli.yml'
+      - 'scenes/owli.py'
+      - 'config/owli.json'
+      - 'scripts/check_owli.py'
+  workflow_dispatch:
+    inputs:
+      quality:
+        type: choice
+        description: 'Preview 900px/10 samples or full 1200px/24 samples'
+        options: [preview, final]
+        required: true
+        default: final
+
+permissions:
+  contents: read
+
+jobs:
+  model-and-render:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      BLENDER_VERSION: '4.5.15'
+      OWLI_SAMPLES: ${{ github.event_name == 'workflow_dispatch' && inputs.quality == 'final' && '24' || '10' }}
+      OWLI_RESOLUTION: ${{ github.event_name == 'workflow_dispatch' && inputs.quality == 'final' && '100' || '75' }}
+      OWLI_VIEWS: '0,45,90,135,180,225,270,315'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Blender runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg libgl1 libxi6 libxrender1 libxrandr2 libxinerama1 libxcursor1 libxkbcommon-x11-0
+      - name: Download Blender 4.5.15 and verify checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          archive="blender-${BLENDER_VERSION}-linux-x64.tar.xz"
+          getfile() {
+            local file="$1" mirror
+            for mirror in \
+              "https://mirror.clarkson.edu/blender/release/Blender4.5" \
+              "https://mirror.blender.org/release/Blender4.5" \
+              "https://download.blender.org/release/Blender4.5"; do
+              echo "Trying $mirror/$file"
+              if curl -fLSs --retry 2 --retry-delay 3 --max-time 600 "$mirror/$file" -o "$file"; then return 0; fi
+              rm -f "$file"
+            done
+            return 1
+          }
+          getfile "$archive"
+          getfile "blender-${BLENDER_VERSION}.sha256"
+          grep -F " $archive" "blender-${BLENDER_VERSION}.sha256" | head -n 1 | sha256sum -c -
+          tar -xJf "$archive"
+          "$RUNNER_TEMP/blender-${BLENDER_VERSION}-linux-x64/blender" --version
+      - name: Build true 3D mascot and render eight views
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p output/owli
+          blender="$RUNNER_TEMP/blender-${BLENDER_VERSION}-linux-x64/blender"
+          "$blender" --background --factory-startup --threads 4 \
+            --python scenes/owli.py -- "$GITHUB_WORKSPACE/output/owli" \
+            > output/owli/owli-build.log 2>&1 || {
+              tail -n 130 output/owli/owli-build.log; exit 1;
+            }
+          tail -n 45 output/owli/owli-build.log
+      - name: Validate Blender model and render outputs
+        run: python3 scripts/check_owli.py output/owli
+      - name: Create 360-degree contact sheet
+        shell: bash
+        run: |
+          set -euo pipefail
+          ffmpeg -hide_banner -loglevel error -y \
+            -pattern_type glob -i 'output/owli/owli_*.png' \
+            -vf 'scale=450:450:flags=lanczos,tile=4x2' \
+            -frames:v 1 output/owli/owli_turnaround.png
+          test -s output/owli/owli_turnaround.png
+      - name: Publish the render and editable 3D project
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owli-3d-${{ github.run_number }}-${{ github.run_attempt }}
+          path: output/owli/
+          retention-days: 30
+          if-no-files-found: warn
