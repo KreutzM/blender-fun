@@ -56,7 +56,14 @@ assign={}
 def bind(ob,bn):
     before=ob.matrix_world.copy()
     ob.parent=arm;ob.parent_type="BONE";ob.parent_bone=bn
+    # Compute the new parent bone matrix before compensating the child.
+    # Without an evaluated pose, freshly created eyelids may jump to the feet.
+    bpy.context.view_layer.update()
     ob.matrix_world=before
+    bpy.context.view_layer.update()
+    delta=(ob.matrix_world.translation-before.translation).length
+    if delta>.015:
+        raise RuntimeError("Rig parenting displaced "+ob.name+": "+str(delta))
     assign[ob.name]=bn
 
 for collection in list(bpy.data.collections):
@@ -116,6 +123,7 @@ for sign in (-1,1):
     for point,v in zip(target.data,closed):point.co=v
     mod=ob.modifiers.new("Thin soft eyelid","SOLIDIFY");mod.thickness=.012
     bind(ob,"head")
+    print("OWLI_LID_WORLD",side,tuple(round(v,3) for v in ob.matrix_world.translation),flush=True)
     d=target.driver_add("value").driver
     d.type="SCRIPTED"
     var=d.variables.new();var.name="blink";var.type="SINGLE_PROP"
