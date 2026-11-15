@@ -72,8 +72,10 @@ def move_to(obj, collection):
     return obj
 
 def hexrgb(key):
-    color = palette[key].lstrip("#")
-    return tuple(int(color[i:i+2], 16)/255 for i in (0,2,4))
+    """Blender shader inputs are linear RGB, while the reference palette is sRGB."""
+    color=palette[key].lstrip("#")
+    channels=[int(color[i:i+2],16)/255 for i in (0,2,4)]
+    return tuple(c/12.92 if c<=.04045 else ((c+.055)/1.055)**2.4 for c in channels)
 
 def mat(name, key, rough=.68, metallic=0, glow=0, gradient=False):
     m = bpy.data.materials.new(name)
@@ -109,7 +111,7 @@ M={
  "eye_dark":mat("10 Near-black iris/pupil","eye_dark",rough=.11),
  "iris":mat("11 Bright blue iris","sapphire",rough=.09,metallic=.06),
  "iris_cyan":mat("12 Turquoise eye detail","cyan",rough=.12,glow=.15),
- "glow":mat("13 Cyan bioluminescent AI circuitry","cyan",rough=.18,glow=3.5),
+ "glow":mat("13 Cyan bioluminescent AI circuitry","cyan",rough=.18,glow=1.75),
  "black":mat("14 Charcoal claws","eye_dark",rough=.35),
  "branch":mat("15 Warm natural branch","wood",rough=.84,gradient=True),
  "wood_light":mat("16 Branch end grain","wood_light",rough=.8),
@@ -261,7 +263,7 @@ for side in (-1,1):
     for j in range(10):
         fx=j/9
         root=HC+Vector((side*(.32+.50*fx),-.25+.20*fx,.68+.03*fx))*head_scale
-        tip=root+Vector((side*(.23+.32*fx),.02,.29+.40*fx))*head_scale
+        tip=root+Vector((side*(.18+.16*fx),.02,.23+.24*fx))*head_scale
         crest.add(root,tip,.18+.08*fx,Vector((0,-1,0)),
                   [M["navy"],M["blue"],M["blue2"],M["cyan"]][j%4],arch=.09)
 crest.commit()
@@ -269,7 +271,7 @@ crest.commit()
 # Large ivory heart-shaped facial disks, with subtle cheek plumes.
 for sign in (-1,1):
     face=uv(("Left" if sign<0 else "Right")+" | white facial ruff",
-            (sign*.50,-.672,3.34),(.59*head_scale,.205,.62*head_scale),
+            (sign*.50,-.686,3.34),(.59*head_scale,.15,.61*head_scale),
             M["white"],"06 | Face")
     cheeks=FeatherMesh("Cheek ruff | "+str(sign),"06 | Face")
     for k in range(10):
@@ -284,24 +286,24 @@ for sign in (-1,1):
 eye_r=.35*eye_scale
 for sign in (-1,1):
     x=sign*.51; z=3.45
-    uv("Eye %s | dark glossy socket"%sign,(x,-.841,z),
-       (eye_r*1.26,.16,eye_r*1.26),M["eye_dark"],"07 | Eyes")
-    uv("Eye %s | luminous blue iris"%sign,(x,-.982,z),
-       (eye_r*1.04,.10,eye_r*1.04),M["iris"],"07 | Eyes")
-    uv("Eye %s | inner turquoise corona"%sign,(x,-1.075,z),
-       (eye_r*.79,.035,eye_r*.79),M["iris_cyan"],"07 | Eyes")
-    uv("Eye %s | pupil"%sign,(x,-1.113,z+.016),
-       (eye_r*.62,.046,eye_r*.62),M["eye_dark"],"07 | Eyes")
-    uv("Eye %s | main glint"%sign,(x-sign*.095,-1.170,z+.132),
+    uv("Eye %s | dark glossy socket"%sign,(x,-.785,z),
+       (eye_r*1.22,.115,eye_r*1.22),M["eye_dark"],"07 | Eyes")
+    uv("Eye %s | luminous blue iris"%sign,(x,-.890,z),
+       (eye_r*1.04,.069,eye_r*1.04),M["iris"],"07 | Eyes")
+    uv("Eye %s | inner turquoise corona"%sign,(x,-.958,z),
+       (eye_r*.78,.027,eye_r*.78),M["iris_cyan"],"07 | Eyes")
+    uv("Eye %s | pupil"%sign,(x,-.987,z+.016),
+       (eye_r*.60,.029,eye_r*.60),M["eye_dark"],"07 | Eyes")
+    uv("Eye %s | main glint"%sign,(x-sign*.095,-1.035,z+.132),
        (.073,.018,.073),M["eye_reflection"],"07 | Eyes",16,12)
-    uv("Eye %s | little glint"%sign,(x+sign*.11,-1.167,z-.075),
+    uv("Eye %s | little glint"%sign,(x+sign*.11,-1.031,z-.075),
        (.025,.012,.025),M["eye_reflection"],"07 | Eyes",12,8)
     # Delicate circuitry-like radial dots within the visible iris ring.
     for k in range(10):
         a=math.tau*k/10
         rad=eye_r*.79
         uv("Eye %s | iris jewel %d"%(sign,k),
-           (x+rad*math.cos(a),-1.102,z+rad*math.sin(a)),
+           (x+rad*math.cos(a),-.990,z+rad*math.sin(a)),
            (.014,.008,.014),M["eye_reflection"],"07 | Eyes",8,6)
 
 # Symmetrical white brow V at the bridge and thick sculptural eyebrow feathers.
@@ -315,10 +317,23 @@ brows.commit()
 
 # Orange tapered beak, full three-dimensional hooked geometry.
 cone_between("Beak | pointed upper orange ridge",
-             (0,-.86,3.26),(0,-1.075,2.96),.145,.018,
+             (0,-.81,3.28),(0,-1.105,2.96),.161,.010,
              M["orange"],"08 | Beak",24)
-uv("Beak | golden highlight",(0,-1.025,3.18),
+uv("Beak | golden highlight",(0,-1.046,3.17),
    (.075,.035,.092),M["gold"],"08 | Beak",16,10)
+
+# A warm orange-to-gold chevron under the white face is a defining Owli
+# identity cue from the 2D reference. Use physical feather mesh patches.
+accent=FeatherMesh("Breast | orange and gold V-shaped throat trim","03 | Body feathers")
+for side in (-1,1):
+    for row in range(3):
+        for k in range(9):
+            t=k/8
+            root=Vector((side*(.13+.53*t),-.74+.09*t,2.69-row*.105))
+            tip=root+Vector((side*.11,-.015,-(.23+.06*t)))
+            accent.add(root,tip,.18,Vector((0,-1,0)),
+                       M["orange"] if (row==0 or (k+row)%3==0) else M["gold"],arch=.018)
+accent.commit()
 
 # Folded wings with substantial volume, sweeping primaries and blue coverts.
 wingfeathers=FeatherMesh("Wings | layered primary and covert feathers","09 | Wings")
@@ -338,6 +353,28 @@ for side in (-1,1):
             wingfeathers.add(root,tip,.25,Vector((side*.25,-1,.05)),
                 [M["navy"],M["blue"],M["blue2"],M["cyan"],M["turquoise"]][(k+row)%5],
                 arch=.08)
+# Additional feather bands wrap over the exposed outer flanks and rear of
+# the wing. This avoids naked smooth oval panels in profile and back views.
+for side in (-1,1):
+    for row in range(8):
+        z=2.55-row*.19
+        for k in range(10):
+            v=k/9
+            y=-.20+v*.76
+            x=side*(1.05+.034*math.sin(v*math.pi)+wingspan*.3)
+            root=Vector((x,y,z+.04*(k%2)))
+            tip=root+Vector((side*(.055+wingspan*.12),-.005,-(.36+.065*v)))
+            wingfeathers.add(root,tip,.19,Vector((side,.16*(v-.5),0)),
+               [M["navy"],M["blue"],M["blue2"],M["cyan"],M["blue"]][(k+row)%5],arch=.04)
+    for row in range(7):
+        z=2.52-row*.20
+        for k in range(7):
+            u=k/6
+            x=side*(.73+u*.42+wingspan*.3)
+            root=Vector((x,.35+u*.035,z))
+            tip=root+Vector((side*.07,.025,-.37))
+            wingfeathers.add(root,tip,.19,Vector((0,1,0)),
+                [M["blue"],M["navy"],M["blue2"],M["turquoise"]][(row+k)%4],arch=.045)
 wingfeathers.commit()
 
 # Rear fan tail of staggered tapered blue feathers, visible from 180°.
