@@ -37,3 +37,26 @@ Die **[Kamerafahrt über die Referenzlandschaft](../../actions/workflows/winter-
 - **Quelle:** [`scripts/animate_reference_winter.py`](scripts/animate_reference_winter.py), verwendet die Szene [`scenes/reference_winter.py`](scenes/reference_winter.py) mit `BLENDER_SKIP_RENDER=1`
 
 Das Actions-Video wird bei Änderungen am Flugskript automatisch erstellt; über **Run workflow** kannst du es auch manuell neu rendern. Eine MP4 mit optischer Bewegungsinterpolation kann bei dünnen Zweigen oder Schneeflocken leichte Zwischenbild-Artefakte erzeugen. Die `.blend` enthält die Originalkamera und kann mit höherer Qualität erneut gerendert werden.
+
+## Owli — parametrisches 3D-Modell (Classic Owli, Variante A)
+
+Die Datei [`scenes/owli.py`](scenes/owli.py) baut die Figur **vollständig aus editierbarer Blender-Geometrie** auf. Grundlage ist das in der Unterhaltung bereitgestellte 360°-Charakter-Referenzblatt „Owli – Variante A – Classic Owli“. Es wird weder ein flaches Referenzbild als Objekt verwendet noch ein KI-Bild als 3D-Modell ausgegeben.
+
+Der prozedurale Aufbau umfasst Kopf/Körper (Richtwerte 45/45/10), rundum angeordnete geschichtete Federflächen, getrennte Flügel und Schwanz, eine weiße Gesichtsmaske, große mehrteilige blaue Augen, einen dreidimensionalen orangefarbenen Schnabel, orange Zehen mit dunklen Krallen, Holzstange und leuchtendes Cyan-Signalemblem auf der Stirn. Die Figur wird aus acht Winkeln gerendert, einschließlich 0°/45°/90°/135°/180°/225°/270°/315°. **Das Modell ist ein erster 3D-Entwurf, keine 1:1-Rekonstruktion aus dem Referenzblatt**; die Ähnlichkeit lässt sich anhand der Turnaround-Bilder prüfen.
+
+- **Parameter:** [`config/owli.json`](config/owli.json) – Farbpalette (`palette`), Kopfgröße (`head_scale`), Körperbreite (`body_width`), Augengröße (`eye_scale`), Flügelöffnung (`wing_spread`), geometrische Federdichte (`feather_density`) und Zufallsseed
+- **Reproduzierbarkeit:** [GitHub Actions → Owli | parametric 3D model and 360 views](../../actions/workflows/owli.yml), Blender 4.5.15 LTS, Cycles CPU; `preview` oder `final`
+- **Ergebnisse:** `owli_parametric.blend` (bearbeitbar), `owli_000.png` bis `owli_315.png` (je 45°), `owli_turnaround.png`, `owli_manifest.json`, `owli-build.log`
+- **Organisation:** In Blender sind Kopf, Körper, Augen, Flügel, Federn, Schwanz, Füße, Stirnsymbol und Studio in separaten Collections. Die einzelnen Federregionen sind platzsparend in Mesh-Batches zusammengefasst.
+
+Beispiel für den lokalen Aufbau:
+
+```bash
+OWLI_SAMPLES=24 OWLI_RESOLUTION=100 \
+OWLI_VIEWS=0,45,90,135,180,225,270,315 \
+blender --background --factory-startup --threads 4 \
+  --python scenes/owli.py -- "$PWD/output/owli"
+python3 scripts/check_owli.py output/owli
+```
+
+Die Modellparameter werden beim **erneuten Ausführen des Skripts** angewandt. Ein bereits erzeugtes `.blend` kann zudem manuell bearbeitet werden. Aktuell handelt es sich um ein statisches Mesh-Modell **ohne Rigging, Shape Keys oder automatisches Posing**; dies wäre ein separater Ausbauschritt.
