@@ -336,8 +336,12 @@ for side in (-1,1):
 accent.commit()
 
 # Folded wings with substantial volume, sweeping primaries and blue coverts.
-wingfeathers=FeatherMesh("Wings | layered primary and covert feathers","09 | Wings")
+wing_meshes={
+    -1: FeatherMesh("Wing.R | layered primary and covert feathers","09 | Wings"),
+     1: FeatherMesh("Wing.L | layered primary and covert feathers","09 | Wings"),
+}
 for side in (-1,1):
+    wingfeathers=wing_meshes[side]
     for j in range(6):
         a=j/5
         uv("Wing %s | thick base layer %d"%(side,j),
@@ -356,6 +360,7 @@ for side in (-1,1):
 # Additional feather bands wrap over the exposed outer flanks and rear of
 # the wing. This avoids naked smooth oval panels in profile and back views.
 for side in (-1,1):
+    wingfeathers=wing_meshes[side]
     for row in range(8):
         z=2.55-row*.19
         for k in range(10):
@@ -379,7 +384,8 @@ for side in (-1,1):
             tip=root+Vector((side*.07,.025,-.37))
             wingfeathers.add(root,tip,.19,Vector((0,1,0)),
                 [M["blue"],M["navy"],M["blue2"],M["turquoise"]][(row+k)%4],arch=.045)
-wingfeathers.commit()
+for wing in wing_meshes.values():
+    wing.commit()
 
 # Rear fan tail of staggered tapered blue feathers, visible from 180°.
 tail=FeatherMesh("Tail | fan with 3D tapered vanes","10 | Tail")
@@ -475,24 +481,29 @@ def camera_angle(deg):
     cam.rotation_euler=(target-cam.location).to_track_quat("-Z","Y").to_euler()
 camera_angle(0)
 
-# Store an editable project plus machine-readable settings before rendering.
-project=OUT/"owli_parametric.blend"
-bpy.ops.wm.save_as_mainfile(filepath=str(project))
-manifest={
- "character":"Owli","variant":"A – Classic Owli",
- "source":"User-provided 360° reference sheet, 2026-11-15",
- "blender_version":bpy.app.version_string,
- "config":cfg,"views_degrees":view_degrees,
- "model_objects":sum(1 for o in bpy.data.objects if o.name!=stage.name and o!=cam
-                       and not any(o.name==n for n in ("Soft key | white","Cyan rim","Warm amber accent"))),
- "feather_meshes":[o.name for o in bpy.data.objects if "feathers" in o.name.lower()],
- "output_blend":project.name}
-(OUT/"owli_manifest.json").write_text(json.dumps(manifest,indent=2),encoding="utf-8")
-print("OWLI_MODEL_READY",manifest["model_objects"],"objects",
-      "samples",samples,"resolution_pct",resolution,flush=True)
-for degree in view_degrees:
-    camera_angle(degree)
-    scene.render.filepath=str(OUT/("owli_%03d.png"%degree))
-    bpy.ops.render.render(write_still=True)
-    print("OWLI_VIEW_RENDERED",degree,flush=True)
-print("OWLI_COMPLETE",len(view_degrees),"views and",project,flush=True)
+# Reuse exact 3D geometry for animation without baking an unrigged render.
+if os.environ.get("OWLI_BUILD_ONLY","0")=="1":
+    print("OWLI_BUILD_ONLY_READY",len(bpy.data.objects),flush=True)
+else:
+    # Store an editable project plus machine-readable settings before rendering.
+    project=OUT/"owli_parametric.blend"
+    bpy.ops.wm.save_as_mainfile(filepath=str(project))
+    manifest={
+     "character":"Owli","variant":"A – Classic Owli",
+     "source":"User-provided 360° reference sheet, 2026-11-15",
+     "blender_version":bpy.app.version_string,
+     "config":cfg,"views_degrees":view_degrees,
+     "model_objects":sum(1 for o in bpy.data.objects if o.name!=stage.name and o!=cam
+                           and not any(o.name==n for n in ("Soft key | white","Cyan rim","Warm amber accent"))),
+     "feather_meshes":[o.name for o in bpy.data.objects if "feathers" in o.name.lower()],
+     "output_blend":project.name}
+    (OUT/"owli_manifest.json").write_text(json.dumps(manifest,indent=2),encoding="utf-8")
+    print("OWLI_MODEL_READY",manifest["model_objects"],"objects",
+          "samples",samples,"resolution_pct",resolution,flush=True)
+    for degree in view_degrees:
+        camera_angle(degree)
+        scene.render.filepath=str(OUT/("owli_%03d.png"%degree))
+        bpy.ops.render.render(write_still=True)
+        print("OWLI_VIEW_RENDERED",degree,flush=True)
+    print("OWLI_COMPLETE",len(view_degrees),"views and",project,flush=True)
+    

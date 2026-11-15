@@ -1,0 +1,96 @@
+name: Owli | animate rig and character demo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/owli-rig.yml'
+      - 'scripts/rig_owli.py'
+      - 'scripts/check_owli_rig.py'
+      - 'scenes/owli.py'
+      - 'config/owli.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  animate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      BLENDER_VERSION: '4.5.15'
+      OWLI_RIG_SCALE: '75'
+      OWLI_RIG_SAMPLES: '5'
+      OWLI_RIG_FPS: '8'
+      OWLI_VIEWS: '0'
+    steps:
+      - name: Checkout code and model parameters
+        uses: actions/checkout@v4
+      - name: Install FFmpeg and Blender runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg libgl1 libxi6 libxrender1 libxrandr2 libxinerama1 libxcursor1 libxkbcommon-x11-0
+      - name: Download Blender 4.5.15 and verify checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          archive="blender-${BLENDER_VERSION}-linux-x64.tar.xz"
+          getfile() {
+            local file="$1" mirror
+            for mirror in \
+              "https://mirror.clarkson.edu/blender/release/Blender4.5" \
+              "https://mirror.blender.org/release/Blender4.5" \
+              "https://download.blender.org/release/Blender4.5"; do
+              echo "Trying $mirror/$file"
+              if curl -fLSs --retry 2 --retry-delay 3 --max-time 600 "$mirror/$file" -o "$file"; then return 0; fi
+              rm -f "$file"
+            done
+            return 1
+          }
+          getfile "$archive"
+          getfile "blender-${BLENDER_VERSION}.sha256"
+          grep -F " $archive" "blender-${BLENDER_VERSION}.sha256" | head -n 1 | sha256sum -c -
+          tar -xJf "$archive"
+          "$RUNNER_TEMP/blender-${BLENDER_VERSION}-linux-x64/blender" --version
+      - name: Build bone rig and render character poses
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p output/owli_rig
+          blender="$RUNNER_TEMP/blender-${BLENDER_VERSION}-linux-x64/blender"
+          "$blender" --background --factory-startup --threads 4 \
+            --python scripts/rig_owli.py > output/owli_rig/rig.log 2>&1 || {
+              tail -n 100 output/owli_rig/rig.log; exit 1;
+            }
+          tail -n 30 output/owli_rig/rig.log
+      - name: Encode MP4 and create pose-sheet
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find output/owli_rig/frames -name 'frame_*.png' | wc -l)" -ge 48
+          ffmpeg -hide_banner -nostdin -loglevel error -y \
+            -framerate 8 -i output/owli_rig/frames/frame_%04d.png \
+            -vf 'fps=24,scale=720:720:flags=lanczos,format=yuv420p' \
+            -c:v libx264 -preset fast -crf 19 -movflags +faststart \
+            output/owli_rig/owli_animation.mp4
+          ffmpeg -hide_banner -nostdin -loglevel error -y \
+            -pattern_type glob -i 'output/owli_rig/pose_*.png' \
+            -vf 'scale=480:480:flags=lanczos,tile=4x1' -frames:v 1 \
+            output/owli_rig/pose_sheet.png
+      - name: Verify editable rig, animation and all output files
+        run: python3 scripts/check_owli_rig.py output/owli_rig
+      - name: Publish finished Owli rig and video
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owli-rig-${{ github.run_number }}-${{ github.run_attempt }}
+          path: |
+            output/owli_rig/*.blend
+            output/owli_rig/*.png
+            output/owli_rig/*.mp4
+            output/owli_rig/*.json
+            output/owli_rig/*.log
+          if-no-files-found: warn
+          retention-days: 30

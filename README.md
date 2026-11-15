@@ -60,3 +60,13 @@ python3 scripts/check_owli.py output/owli
 ```
 
 Die Modellparameter werden beim **erneuten Ausführen des Skripts** angewandt. Ein bereits erzeugtes `.blend` kann zudem manuell bearbeitet werden. Aktuell handelt es sich um ein statisches Mesh-Modell **ohne Rigging, Shape Keys oder automatisches Posing**; dies wäre ein separater Ausbauschritt.
+
+## Animations-Rig für Owli
+
+Der Rig-Generator [`scripts/rig_owli.py`](scripts/rig_owli.py) importiert dieselbe parametrische Geometrie wie der 360°-Turnaround, erzeugt aber ein **Blender-Armature-Rig mit einzeln beweglichen Flügeln, Kopf, Blickrichtung, Schwanz und vier Zehen je Fuß**. Zwei echte Lid-Meshes besitzen Open/Closed-Shape-Keys; ihre Werte werden von den benutzerdefinierten Blink-Eigenschaften am `face`-Bone gesteuert.
+
+Im **Pose Mode** kannst du `head`, `wing.L/R`, `gaze.L/R`, `foot.L/R`, `toe.L/R.0..2` und `tail` bewegen. Den Blick der Augen steuerst du unabhängig vom Kopf, die Lider über `face` → Custom Properties `blink.L`, `blink.R` (0 = offen, 1 = geschlossen).
+
+Das Rig besteht aus per Bone gesteuerten **starren geometrischen Modellteilen** und morphenden Augenlidern. Für komplexe weich deformierende Federflügel wäre später Skinning/Weight-Painting nötig. Die ursprünglichen parametrischen Werte unter `config/owli.json` werden vor dem Rig-Aufbau erneut angewandt. Die Animation ist mit Blender-Keyframes gespeichert und editierbar; ein 6-Sekunden-MP4 dient als technische Demonstration.
+
+[**Rig und Demo über GitHub Actions rendern**](../../actions/workflows/owli-rig.yml). CI-Artefakte: `owli_rigged.blend`, `owli_animation.mp4`, `pose_sheet.png`, vier Posen, `rig_report.json` und Buildprotokoll.
