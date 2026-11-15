@@ -54,6 +54,9 @@ arm["controls"]="Pose Mode: head, wing.L/R, gaze.L/R, tail, feet + toes. Face bo
 arm["model_source"]="scenes/owli.py and config/owli.json"
 assign={}
 def bind(ob,bn):
+    # Newly constructed mesh objects (especially eyelids) can have pending
+    # location changes; flush depsgraph BEFORE saving their world transform.
+    bpy.context.view_layer.update()
     before=ob.matrix_world.copy()
     ob.parent=arm;ob.parent_type="BONE";ob.parent_bone=bn
     # Compute the new parent bone matrix before compensating the child.
@@ -123,7 +126,9 @@ for sign in (-1,1):
     for point,v in zip(target.data,closed):point.co=v
     mod=ob.modifiers.new("Thin soft eyelid","SOLIDIFY");mod.thickness=.012
     bind(ob,"head")
-    print("OWLI_LID_WORLD",side,tuple(round(v,3) for v in ob.matrix_world.translation),flush=True)
+    pos=ob.matrix_world.translation
+    assert (pos-Vector((sign*.51,0,3.45))).length<.02, "Eyelid is not on the eye!"
+    print("OWLI_LID_WORLD",side,tuple(round(v,3) for v in pos),flush=True)
     d=target.driver_add("value").driver
     d.type="SCRIPTED"
     var=d.variables.new();var.name="blink";var.type="SINGLE_PROP"
