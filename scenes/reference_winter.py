@@ -589,8 +589,13 @@ scene.camera=cam
 
 # Minimal post-processing: no aggressive bloom or sharpening.
 scene.render.filepath=OUT
-blend_file=os.path.splitext(OUT)[0]+".blend"
-bpy.ops.wm.save_as_mainfile(filepath=blend_file)
-print("REFERENCE_SCENE objects:",len(bpy.data.objects),"samples:",SAMPLES,"resolution_percent:",SCALE,flush=True)
-bpy.ops.render.render(write_still=True)
-print("REFERENCE_RENDER_SAVED",OUT,flush=True)
+if os.environ.get("BLENDER_SKIP_RENDER") == "1":
+    # The camera-tour builder imports this exact procedural scene without
+    # wasting time on the still render. Its original output remains unchanged.
+    print("REFERENCE_SCENE_READY", len(bpy.data.objects), flush=True)
+else:
+    blend_file=os.path.splitext(OUT)[0]+".blend"
+    bpy.ops.wm.save_as_mainfile(filepath=blend_file)
+    print("REFERENCE_SCENE objects:",len(bpy.data.objects),"samples:",SAMPLES,"resolution_percent:",SCALE,flush=True)
+    bpy.ops.render.render(write_still=True)
+    print("REFERENCE_RENDER_SAVED",OUT,flush=True)

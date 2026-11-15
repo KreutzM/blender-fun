@@ -1,0 +1,101 @@
+name: Cinematic winter scene flythrough
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/winter-flythrough.yml'
+      - 'scenes/reference_winter.py'
+      - 'scripts/animate_reference_winter.py'
+      - 'scripts/check_flythrough.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: winter-flythrough-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  flythrough:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      BLENDER_VERSION: '4.5.15'
+      BLENDER_SAMPLES: '6'
+      BLENDER_RESOLUTION_PERCENT: '70'
+      FLYTHROUGH_SOURCE_FPS: '8'
+      BLENDER_SKIP_RENDER: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install FFmpeg and Blender Linux dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg libgl1 libxi6 libxrender1 libxrandr2 libxinerama1 libxcursor1 libxkbcommon-x11-0
+      - name: Download Blender 4.5.15 and verify checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          archive="blender-${BLENDER_VERSION}-linux-x64.tar.xz"
+          getfile() {
+            local file="$1" mirror
+            for mirror in \
+              "https://mirror.clarkson.edu/blender/release/Blender4.5" \
+              "https://mirror.blender.org/release/Blender4.5" \
+              "https://download.blender.org/release/Blender4.5"; do
+              echo "Trying $mirror/$file"
+              if curl -fLSs --retry 2 --retry-delay 3 --max-time 600 "$mirror/$file" -o "$file"; then return 0; fi
+              rm -f "$file"
+            done
+            return 1
+          }
+          getfile "$archive"
+          getfile "blender-${BLENDER_VERSION}.sha256"
+          grep -F " $archive" "blender-${BLENDER_VERSION}.sha256" | head -n 1 | sha256sum -c -
+          tar -xJf "$archive"
+          "$RUNNER_TEMP/blender-${BLENDER_VERSION}-linux-x64/blender" --version
+      - name: Build animated camera and render the frames
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p output/frames
+          blender="$RUNNER_TEMP/blender-${BLENDER_VERSION}-linux-x64/blender"
+          "$blender" --background --factory-startup --threads 4 \
+            --python scripts/animate_reference_winter.py \
+            > output/animation.log 2>&1 || { tail -n 140 output/animation.log; exit 1; }
+          tail -n 35 output/animation.log
+
+      - name: Encode video, interpolate 8 FPS to smooth 24 FPS
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find output/frames -maxdepth 1 -name 'frame_*.png' | wc -l)" -ge 120
+          ffmpeg -hide_banner -nostdin -y -loglevel warning \
+            -framerate 8 -i output/frames/frame_%04d.png \
+            -vf "minterpolate=fps=24:mi_mode=mci:mc_mode=obmc:me_mode=bidir,scale=1280:720:flags=lanczos,format=yuv420p" \
+            -c:v libx264 -preset medium -crf 19 -movflags +faststart \
+            output/reference_flythrough.mp4
+          ffmpeg -hide_banner -nostdin -y -loglevel error \
+            -pattern_type glob -i 'output/storyboard/shot_*.png' \
+            -vf 'scale=480:270:flags=lanczos,tile=3x2' \
+            -frames:v 1 output/reference_storyboard.png
+          ls -lh output/reference_flythrough.mp4 output/reference_storyboard.png
+
+      - name: Validate video and editable project
+        run: python3 scripts/check_flythrough.py output/reference_flythrough.mp4 output/reference_storyboard.png
+
+      - name: Publish MP4, storyboard and editable camera animation
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: winter-flythrough-${{ github.run_number }}-${{ github.run_attempt }}
+          path: |
+            output/reference_flythrough.mp4
+            output/reference_storyboard.png
+            output/reference_flythrough.blend
+            output/animation.log
+          retention-days: 30
+          if-no-files-found: warn
