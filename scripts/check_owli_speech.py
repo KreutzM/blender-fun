@@ -12,9 +12,14 @@ assert any(x["values"]["mouth_narrow"]>.8 for x in r["events"])
 project=p/"owli_speaking.blend"
 assert project.stat().st_size>200_000
 with project.open("rb") as f:assert f.read(7)==b"BLENDER"
-for n in ("mouth_closed.png","mouth_open.png","mouth_wide.png",
-          "mouth_rounded.png","mouth_contact_sheet.png"):
+mouths=("mouth_closed.png","mouth_open.png","mouth_wide.png","mouth_rounded.png")
+for n in mouths+("mouth_contact_sheet.png",):
     assert (p/n).stat().st_size>10000,n
+# Detect regression where background scripting assigned mouth properties but
+# never re-evaluated the drivers (four identical beak renders).
+import hashlib
+digests=[hashlib.sha256((p/n).read_bytes()).hexdigest() for n in mouths]
+assert len(set(digests))==len(mouths),"Mouth-shape images are identical"
 mp4=p/"owli_speech_demo.mp4"
 assert mp4.stat().st_size>30000
 data=json.loads(subprocess.check_output(["ffprobe","-v","error",

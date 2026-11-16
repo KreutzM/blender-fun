@@ -83,9 +83,11 @@ cam.data.ortho_scale=2.65
 
 # Face/head pose kept neutral for isolated beak evaluation.
 # Full rig animation remains available in the underlying scene if needed.
+# The original gesture demo contains mid-turn head/wing keys. Freeze them
+# at every source frame; otherwise E/O images would differ in head pose too.
 for name in ("head","wing.L","wing.R","gaze.L","gaze.R"):
     bone=arm.pose.bones[name]
-    for frame in (1,count+1):
+    for frame in range(1,count+1):
         bone.rotation_euler=(0,0,0)
         bone.keyframe_insert(data_path="rotation_euler",frame=frame,group="Owli | Speech")
 

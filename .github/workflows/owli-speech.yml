@@ -8,6 +8,8 @@ on:
       - 'scripts/animate_owli_speech.py'
       - 'scripts/check_owli_speech.py'
       - 'scripts/rig_owli.py'
+      - 'scenes/owli.py'
+      - 'config/owli.json'
       - 'config/owli_speech_demo.json'
   workflow_dispatch:
 
