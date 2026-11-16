@@ -135,6 +135,13 @@ face["mouth_open"]=1.0
 bpy.context.view_layer.update()
 tip_open=mandible.evaluated_get(bpy.context.evaluated_depsgraph_get()).matrix_world.translation.copy()
 cavity_open=cavity.data.shape_keys.key_blocks["Open"].value
+print("OWLI_JAW_DIAG","face",face["mouth_open"],
+      "angle",round(jaw.rotation_euler[0],5),
+      "origin_closed",tuple(round(v,5) for v in tip_closed),
+      "origin_open",tuple(round(v,5) for v in tip_open),
+      "cavity",round(cavity_open,5),
+      "jaw_bone",mandible.parent_bone,
+      flush=True)
 assert (tip_open-tip_closed).length>.03, "Jaw does not move"
 assert cavity_open>.9, "Cavity did not expand with jaw"
 print("OWLI_BEAK_RIG_CHECK",tuple(round(v,3) for v in tip_closed),
