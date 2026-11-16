@@ -132,12 +132,18 @@ pose_cases={
  "rounded": "O"
 }
 for label,viseme in pose_cases.items():
-    values=VIS[viseme]
-    for prop,value in zip(keys,values):face[prop]=value
+    # Changing a property directly in background mode may not force drivers
+    # to re-evaluate. Use the same actual keyed frames as the lip-sync clip.
+    samples=[rec for rec in records if rec["viseme"]==viseme]
+    if not samples:raise ValueError("Missing pose viseme "+viseme)
+    frame=samples[0]["frame"]
+    scene.frame_set(frame)
     bpy.context.view_layer.update()
+    actual=tuple(round(face[k],3) for k in keys)
+    assert max(abs(a-b) for a,b in zip(actual,VIS[viseme]))<.05, (label,actual)
     scene.render.filepath=str(OUT/("mouth_"+label+".png"))
     bpy.ops.render.render(write_still=True)
-    print("OWLI_SPEECH_POSE_RENDERED",label,flush=True)
+    print("OWLI_SPEECH_POSE_RENDERED",label,"frame",frame,"controls",actual,flush=True)
 
 # Restore scripted curves from keyframe evaluation and render animation.
 scene.frame_set(1)
