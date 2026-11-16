@@ -1,5 +1,5 @@
 name: Owli | fast rig validation
-# Jaw driver diagnostics for speaking beak.
+# Jaw driver evaluation using keyed face controls (regression).
 # Validate true eye-level eyelids after the pre-parent depsgraph fix.
 
 on:
