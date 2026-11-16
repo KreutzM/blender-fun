@@ -19,18 +19,29 @@ assert len(names)>=65,(len(names),sorted(names)[:30])
 assert len(mesh_names)>=30,len(mesh_names)
 assert any("jaw" == n or n.endswith("_jaw") for n in names),\
        "No articulated jaw node exported: "+str(sorted(n for n in names if "jaw" in n.lower()))
-assert any("Beak" in x and "lower" in x for x in mesh_names),\
-       "No distinct articulated lower beak mesh"
+# glTF names meshes from Blender mesh datablocks, not necessarily the named
+# objects. Validate object node -> actual mesh ID, rather than mesh.name.
+mandible_nodes=[x for x in model["nodes"] if "Beak" in x.get("name","")
+                and "lower articulated mandible" in x.get("name","")]
+assert len(mandible_nodes)==1, "Lower mandible object node absent"
+assert "mesh" in mandible_nodes[0], "Lower mandible has no exported geometry"
 morph_sets=[]
 for mesh in model.get("meshes",[]):
     names_in=mesh.get("extras",{}).get("targetNames",[])
     for prim in mesh.get("primitives",[]):
         if prim.get("targets"): morph_sets.append((mesh.get("name",""),names_in,len(prim["targets"])))
 assert morph_sets,"No glTF morph targets survived"
-assert any("Wide" in names or "Narrow" in names for _,names,_ in morph_sets),\
-       "No mouth width/narrow shape keys in GLB"
-assert any("Closed" in names and "Eyelid" in mesh for mesh,names,_ in morph_sets),\
-       "No blink shape keys in GLB"
+lower_mesh=model["meshes"][mandible_nodes[0]["mesh"]]
+lower_shapes=lower_mesh.get("extras",{}).get("targetNames",[])
+assert "Wide" in lower_shapes and "Narrow" in lower_shapes,\
+       "Jaw morphs missing: "+str(lower_shapes)
+lid_nodes=[x for x in model["nodes"] if x.get("name","").startswith("Eyelid.")
+           and "mesh" in x]
+assert len(lid_nodes)==2,"Expected two separate eyelid nodes, got "+str([x.get("name") for x in lid_nodes])
+for lid in lid_nodes:
+    lid_mesh=model["meshes"][lid["mesh"]]
+    lid_shapes=lid_mesh.get("extras",{}).get("targetNames",[])
+    assert "Closed" in lid_shapes,"Missing blink morph for "+lid.get("name","")
 assert not model.get("cameras"),"Studio camera leaked into runtime GLB"
 assert not model.get("extensions",{}).get("KHR_lights_punctual"),"Studio lights leaked"
 manifest=json.loads((root/"owli_export_manifest.json").read_text(encoding="utf-8"))
