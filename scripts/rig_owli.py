@@ -128,10 +128,16 @@ for key,prop in (("Wide","mouth_wide"),("Narrow","mouth_narrow")):
     prop_driver(sk,prop,"max(0,min(1,v))")
 prop_driver(cavity.data.shape_keys.key_blocks["Open"],"mouth_open","max(0,min(1,v))")
 # Check drivers on the evaluated rig, not merely the existence of keyframes.
+# Force depsgraph evaluation through animation frames, the same
+# mechanism used by lip-sync and Blender's timeline (also needed headless).
 face["mouth_open"]=0.0
-bpy.context.view_layer.update()
-tip_closed=mandible.matrix_world.translation.copy()
+face.keyframe_insert(data_path='["mouth_open"]',frame=1)
 face["mouth_open"]=1.0
+face.keyframe_insert(data_path='["mouth_open"]',frame=2)
+scene.frame_set(1)
+bpy.context.view_layer.update()
+tip_closed=mandible.evaluated_get(bpy.context.evaluated_depsgraph_get()).matrix_world.translation.copy()
+scene.frame_set(2)
 bpy.context.view_layer.update()
 tip_open=mandible.evaluated_get(bpy.context.evaluated_depsgraph_get()).matrix_world.translation.copy()
 cavity_open=cavity.data.shape_keys.key_blocks["Open"].value
@@ -146,7 +152,11 @@ assert (tip_open-tip_closed).length>.03, "Jaw does not move"
 assert cavity_open>.9, "Cavity did not expand with jaw"
 print("OWLI_BEAK_RIG_CHECK",tuple(round(v,3) for v in tip_closed),
       tuple(round(v,3) for v in tip_open),"cavity",cavity_open,flush=True)
+# Remove diagnostic keyframes so the delivered rig is neutral by default.
+face.keyframe_delete(data_path='["mouth_open"]',frame=1)
+face.keyframe_delete(data_path='["mouth_open"]',frame=2)
 face["mouth_open"]=0.0
+scene.frame_set(1)
 bpy.context.view_layer.update()
 
 # Actual eyelid meshes use open and closed 3D shape keys; a driver connects
