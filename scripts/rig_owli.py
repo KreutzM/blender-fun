@@ -257,14 +257,18 @@ report={"bone_count":len(arm.pose.bones),"bones":sorted(arm.pose.bones.keys()),
         "blender_version":bpy.app.version_string,"blend_file":project.name}
 (OUT/"rig_report.json").write_text(json.dumps(report,indent=2))
 print("OWLI_RIG_READY",report,flush=True)
-for name,second in (("pose_idle.png",0),("pose_glance.png",1.65),
-                    ("pose_wink.png",2.48),("pose_wings.png",3.1)):
-    scene.frame_set(max(1,min(LAST,round(second*FPS))))
-    scene.render.filepath=str(OUT/name)
-    bpy.ops.render.render(write_still=True)
-    print("OWLI_RIG_STILL",name,flush=True)
-scene.frame_set(1)
-frames=OUT/"frames";frames.mkdir(exist_ok=True)
-scene.render.filepath=str(frames/"frame_")
-bpy.ops.render.render(animation=True)
-print("OWLI_RIG_FRAMES_COMPLETE",LAST,flush=True)
+if os.environ.get("OWLI_RIG_BUILD_ONLY","0")=="1":
+    print("OWLI_RIG_BUILD_ONLY_READY",project,flush=True)
+else:
+    for name,second in (("pose_idle.png",0),("pose_glance.png",1.65),
+                        ("pose_wink.png",2.48),("pose_wings.png",3.1)):
+        scene.frame_set(max(1,min(LAST,round(second*FPS))))
+        scene.render.filepath=str(OUT/name)
+        bpy.ops.render.render(write_still=True)
+        print("OWLI_RIG_STILL",name,flush=True)
+    scene.frame_set(1)
+    frames=OUT/"frames";frames.mkdir(exist_ok=True)
+    scene.render.filepath=str(frames/"frame_")
+    bpy.ops.render.render(animation=True)
+    print("OWLI_RIG_FRAMES_COMPLETE",LAST,flush=True)
+    

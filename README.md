@@ -76,3 +76,9 @@ Das Rig besteht aus per Bone gesteuerten **starren geometrischen Modellteilen** 
 Der Schnabel besteht jetzt aus **getrenntem Ober- und Unterschnabel** plus einem geschlossenen/öffnenden dunklen 3D-Innenraum. Der Bone `jaw` bewegt den Unterschnabel. Auf dem Bone `face` liegen die steuerbaren Eigenschaften `mouth_open`, `mouth_wide`, `mouth_narrow` (0 bis 1). Blender-Driver koppeln Öffnung, Innentasche und Form automatisch an diese Eigenschaften. Sie sind durch Blender-Keyframes oder externe viseme/alignment JSON-Daten steuerbar.
 
 Die grundlegenden Schnabelproportionen und der maximale Öffnungswinkel stehen unter `config/owli.json` → `beak`. Für spätere TTS-Anbindung verwenden wir zeitgestempelte Viseme – eine reine Audio-Amplitudensteuerung wäre nur eine gröbere Ersatzlösung. Das Rig ist als **stylisierte Eulen-Sprache** gedacht; die drei Parameter sind kein universeller menschlicher Phonemsolver.
+
+### Viseme-Anbindung für TTS
+
+Die dateibasierte, **zeitcodierte Schnittstelle** liegt unter [`config/owli_speech_demo.json`](config/owli_speech_demo.json). Jede Meldung besitzt `time` (Sekunden ab Beginn), `viseme` (`REST A E I O U M P B F V S L T N R`) und optional `strength` (0..1). Das Skript [`scripts/animate_owli_speech.py`](scripts/animate_owli_speech.py) setzt diese Events in Keyframes der drei Face-Properties um. Externe TTS- oder Forced-Alignment-Systeme können dieselbe JSON-Struktur ausgeben. Bitte nicht verwechseln: Die mitgelieferte Demo ist **illustrativ** und noch nicht zu einer echten Sprachaufnahme aligniert.
+
+Der [**Owli-Sprechworkflow in GitHub Actions**](../../actions/workflows/owli-speech.yml) erstellt `owli_speaking.blend` mit steuerbarer Mundanimation, vier Nahaufnahmen (`mouth_closed/open/wide/rounded.png`), eine Kontaktübersicht und eine stumme 5-Sekunden-MP4. Ein späterer Echtzeit-Avatar müsste diese Steuersignale in einem Laufzeit-Renderer (z. B. WebGL) auswerten; Blender ist derzeit der Offline-Referenzrenderer.

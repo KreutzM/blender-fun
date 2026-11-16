@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "text_hint": "Hallo! Ich bin Owli. Schön, dass du da bist.",
+  "duration_seconds": 5,
+  "note": "Demonstrationstiming. Nicht aus einer TTS-Sprachdatei oder einem Phonem-Aligner ermittelt.",
+  "events": [
+    {
+      "time": 0,
+      "viseme": "REST"
+    },
+    {
+      "time": 0.25,
+      "viseme": "A"
+    },
+    {
+      "time": 0.5,
+      "viseme": "L"
+    },
+    {
+      "time": 0.75,
+      "viseme": "O"
+    },
+    {
+      "time": 1,
+      "viseme": "REST"
+    },
+    {
+      "time": 1.25,
+      "viseme": "I"
+    },
+    {
+      "time": 1.5,
+      "viseme": "B"
+    },
+    {
+      "time": 1.75,
+      "viseme": "I"
+    },
+    {
+      "time": 2,
+      "viseme": "N"
+    },
+    {
+      "time": 2.25,
+      "viseme": "O"
+    },
+    {
+      "time": 2.5,
+      "viseme": "U"
+    },
+    {
+      "time": 2.75,
+      "viseme": "L"
+    },
+    {
+      "time": 3,
+      "viseme": "I"
+    },
+    {
+      "time": 3.25,
+      "viseme": "REST"
+    },
+    {
+      "time": 3.5,
+      "viseme": "S"
+    },
+    {
+      "time": 3.75,
+      "viseme": "E"
+    },
+    {
+      "time": 4,
+      "viseme": "N"
+    },
+    {
+      "time": 4.25,
+      "viseme": "O"
+    },
+    {
+      "time": 4.5,
+      "viseme": "REST"
+    }
+  ]
+}
