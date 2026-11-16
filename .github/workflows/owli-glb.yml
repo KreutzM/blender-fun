@@ -1,0 +1,78 @@
+name: Owli | export browser GLB candidate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/owli-glb.yml'
+      - 'scripts/export_owli_glb.py'
+      - 'scripts/check_owli_glb.py'
+      - 'scenes/owli.py'
+      - 'scripts/rig_owli.py'
+      - 'config/owli.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      BLENDER_VERSION: '4.5.15'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install official Blender runtime libraries
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libgl1 libxi6 libxrender1 libxrandr2 libxinerama1 libxcursor1 libxkbcommon-x11-0
+      - name: Download Blender 4.5.15 and verify checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          archive="blender-${BLENDER_VERSION}-linux-x64.tar.xz"
+          getfile() {
+            local file="$1" mirror
+            for mirror in \
+              "https://mirror.clarkson.edu/blender/release/Blender4.5" \
+              "https://mirror.blender.org/release/Blender4.5" \
+              "https://download.blender.org/release/Blender4.5"; do
+              echo "Trying $mirror/$file"
+              if curl -fLSs --retry 2 --retry-delay 3 --max-time 600 "$mirror/$file" -o "$file"; then return 0; fi
+              rm -f "$file"
+            done
+            return 1
+          }
+          getfile "$archive"
+          getfile "blender-${BLENDER_VERSION}.sha256"
+          grep -F " $archive" "blender-${BLENDER_VERSION}.sha256" | head -n 1 | sha256sum -c -
+          tar -xJf "$archive"
+          "$RUNNER_TEMP/blender-${BLENDER_VERSION}-linux-x64/blender" --version
+      - name: Build and export Owli GLB (no render)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p output/owli_glb
+          "$RUNNER_TEMP/blender-${BLENDER_VERSION}-linux-x64/blender" \
+            --background --factory-startup --threads 4 \
+            --python scripts/export_owli_glb.py \
+            > output/owli_glb/export.log 2>&1 || {
+              tail -n 150 output/owli_glb/export.log; exit 1;
+            }
+          tail -n 35 output/owli_glb/export.log
+      - name: Validate portable GLB geometry, rig and shape keys
+        run: python3 scripts/check_owli_glb.py output/owli_glb
+      - name: Publish local browser import candidate
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owli-browser-glb-${{ github.run_number }}-${{ github.run_attempt }}
+          path: |
+            output/owli_glb/owli_avatar.glb
+            output/owli_glb/owli_export_manifest.json
+            output/owli_glb/owli_glb_structure_report.json
+            output/owli_glb/export.log
+          if-no-files-found: warn
+          retention-days: 30
