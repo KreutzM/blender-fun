@@ -70,3 +70,9 @@ Im **Pose Mode** kannst du `head`, `wing.L/R`, `gaze.L/R`, `foot.L/R`, `toe.L/R.
 Das Rig besteht aus per Bone gesteuerten **starren geometrischen Modellteilen** und morphenden Augenlidern. Für komplexe weich deformierende Federflügel wäre später Skinning/Weight-Painting nötig. Die ursprünglichen parametrischen Werte unter `config/owli.json` werden vor dem Rig-Aufbau erneut angewandt. Die Animation ist mit Blender-Keyframes gespeichert und editierbar; ein 6-Sekunden-MP4 dient als technische Demonstration.
 
 [**Rig und Demo über GitHub Actions rendern**](../../actions/workflows/owli-rig.yml). CI-Artefakte: `owli_rigged.blend`, `owli_animation.mp4`, `pose_sheet.png`, vier Posen, `rig_report.json` und Buildprotokoll.
+
+## Owli als sprechender Avatar: Schnabel-V1
+
+Der Schnabel besteht jetzt aus **getrenntem Ober- und Unterschnabel** plus einem geschlossenen/öffnenden dunklen 3D-Innenraum. Der Bone `jaw` bewegt den Unterschnabel. Auf dem Bone `face` liegen die steuerbaren Eigenschaften `mouth_open`, `mouth_wide`, `mouth_narrow` (0 bis 1). Blender-Driver koppeln Öffnung, Innentasche und Form automatisch an diese Eigenschaften. Sie sind durch Blender-Keyframes oder externe viseme/alignment JSON-Daten steuerbar.
+
+Die grundlegenden Schnabelproportionen und der maximale Öffnungswinkel stehen unter `config/owli.json` → `beak`. Für spätere TTS-Anbindung verwenden wir zeitgestempelte Viseme – eine reine Audio-Amplitudensteuerung wäre nur eine gröbere Ersatzlösung. Das Rig ist als **stylisierte Eulen-Sprache** gedacht; die drei Parameter sind kein universeller menschlicher Phonemsolver.

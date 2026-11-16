@@ -116,6 +116,7 @@ M={
  "branch":mat("15 Warm natural branch","wood",rough=.84,gradient=True),
  "wood_light":mat("16 Branch end grain","wood_light",rough=.8),
  "eye_reflection":mat("17 White crisp eye glints","white",rough=.02,glow=.7),
+ "mouth":mat("19 Dark violet beak interior","mouth",rough=.87),
  "bg":mat("18 Studio seamless background","background",rough=.96),
 }
 
@@ -315,12 +316,37 @@ for sign in (-1,1):
         brows.add(root,tip,.17,Vector((0,-1,0)),M["white"],arch=.02)
 brows.commit()
 
-# Orange tapered beak, full three-dimensional hooked geometry.
-cone_between("Beak | pointed upper orange ridge",
-             (0,-.81,3.28),(0,-1.105,2.96),.161,.010,
-             M["orange"],"08 | Beak",24)
-uv("Beak | golden highlight",(0,-1.046,3.17),
-   (.075,.035,.092),M["gold"],"08 | Beak",16,10)
+# The upper and lower beak are distinct THREE-DIMENSIONAL parts.
+# 'lower mandible' is attached to an independent jaw bone in rig_owli.py.
+# A flattened, normally hidden dark cavity expands as mouth_open increases.
+BEAK=float(cfg.get("beak",{}).get("scale",1.0))
+if not .7 <= BEAK <= 1.4: raise ValueError("beak.scale outside 0.7..1.4")
+upper_beak=cone_between("Beak | fixed upper hooked bill",
+    (0,-.81,3.295),(0,-1.13,3.115),
+    .162*BEAK,.006,M["orange"],"08 | Beak",32)
+uv("Beak | golden highlight",(0,-1.035,3.20),
+    (.071*BEAK,.035,.095*BEAK),M["gold"],"08 | Beak",20,12)
+mandible=cone_between("Beak | lower articulated mandible",
+    (0,-.856,3.105),(0,-1.168,3.054),
+    .126*BEAK,.027*BEAK,M["orange"],"08 | Beak",32)
+mandible.shape_key_add(name="Base",from_mix=False)
+wide_key=mandible.shape_key_add(name="Wide",from_mix=False)
+narrow_key=mandible.shape_key_add(name="Narrow",from_mix=False)
+for vw,vn,base in zip(wide_key.data,narrow_key.data,mandible.data.vertices):
+    vw.co=base.co.copy();vw.co.x*=1.35
+    vn.co=base.co.copy();vn.co.x*=.67
+# Closed beak: only a thin dark seam. Open: dark 3D mouth fills the gap.
+cavity=uv("Beak | inner mouth cavity (morph)",
+          (0,-1.013,3.083),(.134*BEAK,.087,.097*BEAK),
+          M["mouth"],"08 | Beak",28,16)
+unflattened=[v.co.copy() for v in cavity.data.vertices]
+closed=cavity.shape_key_add(name="Closed",from_mix=False)
+for pt,original in zip(closed.data,unflattened):
+    pt.co=original.copy();pt.co.z*=.065
+opened=cavity.shape_key_add(name="Open",from_mix=False)
+for pt,original in zip(opened.data,unflattened):
+    pt.co=original
+
 
 # A warm orange-to-gold chevron under the white face is a defining Owli
 # identity cue from the 2D reference. Use physical feather mesh patches.

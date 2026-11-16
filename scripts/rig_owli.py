@@ -36,6 +36,7 @@ bone("root",(0,0,.10),(0,0,.70))
 bone("body",(0,.08,.71),(0,.08,2.76),"root")
 bone("head",(0,-.02,2.86),(0,-.02,4.19),"body")
 bone("face",(0,-.85,3.62),(0,-.85,4.11),"head")
+bone("jaw",(0,-.856,3.105),(0,-1.12,3.05),"head")
 for sign in (-1,1):
     side="R" if sign<0 else "L"
     bone("wing."+side,(sign*.78,0,2.52),(sign*1.38,0,2.06),"body")
@@ -50,7 +51,10 @@ bpy.ops.object.mode_set(mode="OBJECT")
 for b in arm.pose.bones:b.rotation_mode="XYZ"
 arm.pose.bones["face"]["blink.L"]=0.0
 arm.pose.bones["face"]["blink.R"]=0.0
-arm["controls"]="Pose Mode: head, wing.L/R, gaze.L/R, tail, feet + toes. Face bone custom blink.L/R: 0=open, 1=closed."
+for name in ("mouth_open","mouth_wide","mouth_narrow"):
+    arm.pose.bones["face"][name]=0.0
+arm["controls"]="Pose: head, jaw, wing.L/R, gaze.L/R, tail, feet and toes. Face Custom Properties: blink.L/R, mouth_open, mouth_wide, mouth_narrow (each 0..1)."
+arm["speech_controls"]="mouth_open opens jaw and reveals cavity; mouth_wide and mouth_narrow adjust the articulated mandible shape. Keyframe face-bone properties to lip-sync."
 arm["model_source"]="scenes/owli.py and config/owli.json"
 assign={}
 def bind(ob,bn):
@@ -77,6 +81,8 @@ for collection in list(bpy.data.collections):
         name=ob.name
         bn="body"
         if code in ("02","04","05","06","07","08","13"):bn="head"
+        if code=="08" and name.startswith("Beak | lower articulated mandible"):
+            bn="jaw"
         if code=="09":
             if name.startswith(("Wing.L","Wing 1")):bn="wing.L"
             elif name.startswith(("Wing.R","Wing -1")):bn="wing.R"
@@ -93,6 +99,48 @@ for collection in list(bpy.data.collections):
             side="R" if name.startswith("Eye -1") else "L"
             if "dark glossy socket" not in name:bn="gaze."+side
         bind(ob,bn)
+
+# Real mouth controls: one jaw bone and three independently adjustable
+# face properties, preserving the rest of the original Owli rig.
+face=arm.pose.bones["face"]
+jaw=arm.pose.bones["jaw"]
+max_degrees=float(json.loads((ROOT/"config/owli.json").read_text())["beak"]["max_open_degrees"])
+if not 10 <= max_degrees <= 55: raise ValueError("Unsupported jaw opening angle")
+def prop_driver(target,prop,expression,channel="value",axis=None):
+    curve=target.driver_add(channel,axis) if axis is not None else target.driver_add(channel)
+    driver=curve.driver
+    driver.type="SCRIPTED"
+    var=driver.variables.new()
+    var.name="v";var.type="SINGLE_PROP"
+    var.targets[0].id=arm
+    var.targets[0].data_path='pose.bones["face"]["'+prop+'"]'
+    driver.expression=expression
+    return curve
+# Bone rotates about its local X axis; a positive angle opens the mandible.
+prop_driver(jaw,"mouth_open",str(math.radians(max_degrees))+"*max(0,min(1,v))",
+            "rotation_euler",0)
+mandible=bpy.data.objects.get("Beak | lower articulated mandible")
+cavity=bpy.data.objects.get("Beak | inner mouth cavity (morph)")
+assert mandible and cavity and mandible.parent_bone=="jaw"
+assert cavity.parent_bone=="head"
+for key,prop in (("Wide","mouth_wide"),("Narrow","mouth_narrow")):
+    sk=mandible.data.shape_keys.key_blocks[key]
+    prop_driver(sk,prop,"max(0,min(1,v))")
+prop_driver(cavity.data.shape_keys.key_blocks["Open"],"mouth_open","max(0,min(1,v))")
+# Check drivers on the evaluated rig, not merely the existence of keyframes.
+face["mouth_open"]=0.0
+bpy.context.view_layer.update()
+tip_closed=mandible.matrix_world.translation.copy()
+face["mouth_open"]=1.0
+bpy.context.view_layer.update()
+tip_open=mandible.evaluated_get(bpy.context.evaluated_depsgraph_get()).matrix_world.translation.copy()
+cavity_open=cavity.data.shape_keys.key_blocks["Open"].value
+assert (tip_open-tip_closed).length>.03, "Jaw does not move"
+assert cavity_open>.9, "Cavity did not expand with jaw"
+print("OWLI_BEAK_RIG_CHECK",tuple(round(v,3) for v in tip_closed),
+      tuple(round(v,3) for v in tip_open),"cavity",cavity_open,flush=True)
+face["mouth_open"]=0.0
+bpy.context.view_layer.update()
 
 # Actual eyelid meshes use open and closed 3D shape keys; a driver connects
 # each to the corresponding face bone property so it remains editable in Blender.
@@ -202,6 +250,8 @@ assert sum(v=="wing.L" for v in assign.values())>6
 assert sum(v=="wing.R" for v in assign.values())>6
 report={"bone_count":len(arm.pose.bones),"bones":sorted(arm.pose.bones.keys()),
         "bound_objects":len(assign),"eyelids":lids,"frames":LAST,"fps":FPS,
+        "speech_controls":["mouth_open","mouth_wide","mouth_narrow"],
+        "jaw_bone":"jaw","mouth_cavity":"Beak | inner mouth cavity (morph)",
         "wing_L":sum(v=="wing.L" for v in assign.values()),
         "wing_R":sum(v=="wing.R" for v in assign.values()),
         "blender_version":bpy.app.version_string,"blend_file":project.name}

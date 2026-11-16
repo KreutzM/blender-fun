@@ -25,6 +25,12 @@
     "eye_dark": "#031430",
     "wood": "#75482C",
     "wood_light": "#A16E42",
-    "background": "#CFD8E5"
+    "background": "#CFD8E5",
+    "mouth": "#241019"
+  },
+  "beak": {
+    "scale": 1,
+    "max_open_degrees": 42,
+    "speech_readme": "mouth_open, mouth_wide, mouth_narrow are Face bone Custom Properties in rigged .blend"
   }
 }
